@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String
+  avatarUrl     String?  @map("avatar_url")
+  // AI配置
+  aiApiKey      String?  @map("ai_api_key")
+  aiApiBaseUrl  String?  @map("ai_api_base_url")
+  aiModel       String?  @map("ai_model")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // 关系
+  schedules     Schedule[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+// 日程表
+model Schedule {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  title          String
+  description    String?
+  startTime      DateTime @map("start_time")
+  endTime        DateTime @map("end_time")
+  location       String?
+  priority       String   @default("medium") // low, medium, high, urgent
+  status         String   @default("pending") // pending, in_progress, completed, cancelled
+  isAllDay       Boolean  @default(false) @map("is_all_day")
+  recurrenceRule String?  @map("recurrence_rule")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // 关系
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scheduleTags  ScheduleTag[]
+  aiSuggestions AISuggestion[]
+
+  @@map("schedules")
+}
+
+// 标签表
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  color     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 关系
+  scheduleTags ScheduleTag[]
+
+  @@map("tags")
+}
+
+// 日程标签关系表 (多对多)
+model ScheduleTag {
+  scheduleId String @map("schedule_id")
+  tagId      String @map("tag_id")
+
+  // 关系
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([scheduleId, tagId])
+  @@map("schedule_tags")
+}
+
+// AI建议表
+model AISuggestion {
+  id             String   @id @default(uuid())
+  scheduleId     String   @map("schedule_id")
+  suggestionType String   @map("suggestion_type") // conflict, optimization, recommendation
+  content        String
+  metadata       String?  // JSON存储为字符串
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // 关系
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@map("ai_suggestions")
+}
+
+// 刷新令牌表
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}

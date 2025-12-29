@@ -1,0 +1,21 @@
+# Render Blueprint 配置
+# 用于自动部署后端服务
+
+services:
+  - type: web
+    name: smart-schedule-api
+    runtime: node
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # 需要手动设置 PostgreSQL 连接字符串
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: CORS_ORIGIN
+        sync: false  # 设置为你的 Vercel 前端 URL
+    healthCheckPath: /health

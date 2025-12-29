@@ -1,0 +1,518 @@
+import OpenAI from 'openai';
+import { openai as defaultOpenai, openaiConfig } from '../config/openai';
+import prisma from '../config/database';
+
+// 临时类型定义：扩展User类型以包含AI配置字段
+// 注意：运行 `npx prisma generate` 后可以移除此接口
+interface UserWithAIConfig {
+  aiApiKey: string | null;
+  aiApiBaseUrl: string | null;
+  aiModel?: string | null;
+}
+
+interface AITimeSlot {
+  startTime: string;
+  endTime: string;
+  score: number;
+  reason: string;
+}
+
+interface AIAnalysisResult {
+  recommendations: AITimeSlot[];
+  generalAdvice: string;
+  productivityTips: string[];
+}
+
+export class AIService {
+  // 清理AI响应，移除思考标签和提取JSON
+  private cleanAIResponse(response: string): string {
+    let cleaned = response;
+    
+    // 移除 <think>...</think> 标签及其内容
+    cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    
+    // 移除 ```json 和 ``` 代码块标记
+    cleaned = cleaned.replace(/```json\s*/gi, '');
+    cleaned = cleaned.replace(/```\s*/gi, '');
+    
+    // 尝试提取JSON对象
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    }
+    
+    return cleaned.trim();
+  }
+
+  // 安全解析JSON，带有更好的错误处理
+  private safeParseJSON<T>(response: string, fallback: T): { data: T; parsed: boolean } {
+    try {
+      const cleaned = this.cleanAIResponse(response);
+      const data = JSON.parse(cleaned) as T;
+      return { data, parsed: true };
+    } catch (error) {
+      console.log('JSON解析失败:', error);
+      return { data: fallback, parsed: false };
+    }
+  }
+
+  // 从原始AI响应中提取可读文本
+  private extractReadableText(response: string): string {
+    let text = response;
+    
+    // 移除 <think>...</think> 标签及其内容
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    
+    // 移除JSON部分
+    text = text.replace(/\{[\s\S]*\}/g, '');
+    
+    // 移除代码块标记
+    text = text.replace(/```[\s\S]*?```/g, '');
+    
+    // 清理多余空白
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+    
+    // 如果没有可读文本，返回一个默认消息
+    if (!text || text.length < 10) {
+      return '分析完成，请查看推荐的时间段';
+    }
+    
+    return text;
+  }
+
+  // 获取用户的OpenAI客户端
+  private async getOpenAIClient(userId: string): Promise<OpenAI | null> {
+    const user = (await prisma.user.findUnique({
+      where: { id: userId },
+      // @ts-ignore - Prisma 客户端类型需要重新生成 (运行 npx prisma generate)
+      select: { aiApiKey: true, aiApiBaseUrl: true },
+    })) as UserWithAIConfig | null;
+
+    // 如果用户配置了自己的API密钥，使用用户的配置
+    if (user?.aiApiKey) {
+      return new OpenAI({
+        apiKey: user.aiApiKey,
+        baseURL: user.aiApiBaseUrl || undefined,
+      });
+    }
+
+    // 否则使用系统默认配置
+    if (process.env.OPENAI_API_KEY) {
+      return defaultOpenai;
+    }
+
+    return null;
+  }
+
+  // 获取用户的AI模型配置
+  private async getAIModel(userId: string): Promise<string> {
+    const user = (await prisma.user.findUnique({
+      where: { id: userId },
+      // @ts-ignore - Prisma 客户端类型需要重新生成 (运行 npx prisma generate)
+      select: { aiModel: true },
+    })) as UserWithAIConfig | null;
+
+    return user?.aiModel || openaiConfig.model;
+  }
+
+  // 检查用户是否配置了AI
+  async hasAIConfig(userId: string): Promise<boolean> {
+    const client = await this.getOpenAIClient(userId);
+    return client !== null;
+  }
+
+  async analyzeConflicts(userId: string) {
+    const schedules = await prisma.schedule.findMany({
+      where: { userId },
+      orderBy: { startTime: 'asc' },
+    });
+
+    const conflicts: any[] = [];
+    const suggestions: any[] = [];
+
+    // 简单的冲突检测逻辑
+    for (let i = 0; i < schedules.length; i++) {
+      for (let j = i + 1; j < schedules.length; j++) {
+        const s1 = schedules[i];
+        const s2 = schedules[j];
+
+        // 检查时间重叠
+        if (
+          (s1.startTime <= s2.startTime && s1.endTime > s2.startTime) ||
+          (s2.startTime <= s1.startTime && s2.endTime > s1.startTime)
+        ) {
+          conflicts.push({
+            scheduleIds: [s1.id, s2.id],
+            type: 'time_overlap',
+            severity: 'high',
+            description: `"${s1.title}" 和 "${s2.title}" 时间冲突`,
+          });
+
+          suggestions.push({
+            scheduleId: s1.id,
+            suggestion: `考虑重新安排 "${s1.title}" 的时间`,
+            reason: '与其他日程冲突',
+          });
+        }
+      }
+    }
+
+    // 尝试使用AI增强分析
+    if (conflicts.length > 0) {
+      try {
+        const openaiClient = await this.getOpenAIClient(userId);
+        if (openaiClient) {
+          const model = await this.getAIModel(userId);
+          const prompt = `分析以下日程冲突并提供建议:\n${JSON.stringify(conflicts, null, 2)}`;
+          
+          const completion = await openaiClient.chat.completions.create({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: openaiConfig.temperature,
+            max_tokens: 500,
+          });
+
+          const aiSuggestion = completion.choices[0]?.message?.content || '';
+          if (aiSuggestion) {
+            suggestions.push({
+              scheduleId: 'general',
+              suggestion: aiSuggestion,
+              reason: 'AI建议',
+            });
+          }
+        }
+      } catch (error) {
+        console.log('AI分析失败，使用基础分析:', error);
+      }
+    }
+
+    return { conflicts, suggestions };
+  }
+
+  async suggestTimeSlots(userId: string, duration: number) {
+    const now = new Date();
+    const endOfWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const schedules = await prisma.schedule.findMany({
+      where: {
+        userId,
+        startTime: {
+          gte: now,
+          lte: endOfWeek,
+        },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    // 基础时间段分析
+    const basicSlots = this.findFreeSlots(schedules, now, endOfWeek, duration);
+
+    // 尝试使用AI增强推荐
+    try {
+      const openaiClient = await this.getOpenAIClient(userId);
+      if (openaiClient) {
+        const model = await this.getAIModel(userId);
+        
+        // 准备日程数据给AI分析
+        const scheduleData = schedules.map(s => ({
+          title: s.title,
+          startTime: s.startTime.toISOString(),
+          endTime: s.endTime.toISOString(),
+          priority: s.priority,
+        }));
+
+        const prompt = `你是一个智能日程助手。请分析用户的日程安排，并推荐最佳的空闲时间段来安排新任务。
+
+当前时间: ${now.toISOString()}
+需要安排的任务时长: ${duration} 分钟
+
+用户现有日程:
+${JSON.stringify(scheduleData, null, 2)}
+
+基础空闲时段分析:
+${JSON.stringify(basicSlots.slice(0, 10), null, 2)}
+
+请根据以下因素推荐最佳时间段:
+1. 避免与现有日程冲突
+2. 考虑工作效率（上午通常更适合专注工作）
+3. 考虑休息时间（避免连续安排任务）
+4. 考虑任务优先级的分布
+
+请以JSON格式返回推荐结果，格式如下:
+{
+  "recommendations": [
+    {
+      "startTime": "ISO时间格式",
+      "endTime": "ISO时间格式",
+      "score": 0.0-1.0的评分,
+      "reason": "推荐理由"
+    }
+  ],
+  "generalAdvice": "总体建议",
+  "productivityTips": ["效率建议1", "效率建议2"]
+}
+
+只返回JSON，不要其他内容。`;
+
+        const completion = await openaiClient.chat.completions.create({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 1000,
+        });
+
+        const aiResponse = completion.choices[0]?.message?.content || '';
+        
+        // 使用增强的JSON解析
+        const { data: aiResult, parsed } = this.safeParseJSON<AIAnalysisResult>(aiResponse, {
+          recommendations: [],
+          generalAdvice: '',
+          productivityTips: [],
+        });
+        
+        if (parsed && aiResult.recommendations && aiResult.recommendations.length > 0) {
+          return {
+            recommendedSlots: aiResult.recommendations.slice(0, 5),
+            generalAdvice: aiResult.generalAdvice || '根据您的日程安排，以上是推荐的时间段',
+            productivityTips: aiResult.productivityTips || [],
+            aiPowered: true,
+          };
+        } else {
+          // 如果解析失败，返回基础分析结果加上提取的可读文本
+          const readableAdvice = this.extractReadableText(aiResponse);
+          return {
+            recommendedSlots: basicSlots.slice(0, 5),
+            generalAdvice: readableAdvice,
+            aiPowered: true,
+          };
+        }
+      }
+    } catch (error) {
+      console.log('AI推荐失败，使用基础分析:', error);
+    }
+
+    // 如果没有AI或AI失败，返回基础分析结果
+    return {
+      recommendedSlots: basicSlots.slice(0, 5),
+      aiPowered: false,
+    };
+  }
+
+  // 基础时间段分析逻辑
+  private findFreeSlots(schedules: any[], startDate: Date, endDate: Date, duration: number) {
+    const recommendedSlots: any[] = [];
+    let currentTime = new Date(startDate);
+    currentTime.setHours(9, 0, 0, 0);
+
+    const dayCount = Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+
+    for (let day = 0; day < Math.min(dayCount, 7); day++) {
+      const dayStart = new Date(currentTime);
+      dayStart.setDate(dayStart.getDate() + day);
+      dayStart.setHours(9, 0, 0, 0);
+
+      const dayEnd = new Date(dayStart);
+      dayEnd.setHours(18, 0, 0, 0);
+
+      let checkTime = new Date(dayStart);
+      while (checkTime < dayEnd) {
+        const slotEnd = new Date(checkTime.getTime() + duration * 60 * 1000);
+
+        const hasConflict = schedules.some((s) => {
+          return (
+            (checkTime >= s.startTime && checkTime < s.endTime) ||
+            (slotEnd > s.startTime && slotEnd <= s.endTime)
+          );
+        });
+
+        if (!hasConflict && slotEnd <= dayEnd) {
+          // 根据时间段给予不同的评分
+          const hour = checkTime.getHours();
+          let score = 0.7;
+          let reason = '空闲时段';
+          
+          if (hour >= 9 && hour < 12) {
+            score = 0.95;
+            reason = '上午黄金时段，专注力最强';
+          } else if (hour >= 14 && hour < 16) {
+            score = 0.85;
+            reason = '下午效率时段';
+          } else if (hour >= 12 && hour < 14) {
+            score = 0.6;
+            reason = '午休时段，可能影响精力';
+          }
+
+          recommendedSlots.push({
+            startTime: checkTime.toISOString(),
+            endTime: slotEnd.toISOString(),
+            score,
+            reason,
+          });
+        }
+
+        checkTime = new Date(checkTime.getTime() + 30 * 60 * 1000);
+      }
+    }
+
+    // 按评分排序
+    return recommendedSlots.sort((a, b) => b.score - a.score);
+  }
+
+  // 智能日程规划分析
+  async analyzeSchedulePlanning(userId: string, taskDescription: string, preferredDuration?: number) {
+    const now = new Date();
+    const endOfWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const schedules = await prisma.schedule.findMany({
+      where: {
+        userId,
+        startTime: {
+          gte: now,
+          lte: endOfWeek,
+        },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    const openaiClient = await this.getOpenAIClient(userId);
+    if (!openaiClient) {
+      return {
+        success: false,
+        error: '请先配置AI API密钥才能使用智能分析功能',
+      };
+    }
+
+    const model = await this.getAIModel(userId);
+    
+    const scheduleData = schedules.map(s => ({
+      title: s.title,
+      description: s.description,
+      startTime: s.startTime.toISOString(),
+      endTime: s.endTime.toISOString(),
+      priority: s.priority,
+      status: s.status,
+    }));
+
+    const prompt = `你是一个专业的时间管理和日程规划AI助手。用户想要安排一个新任务，请帮助分析并给出建议。
+
+当前时间: ${now.toISOString()}
+
+用户想要安排的任务:
+"${taskDescription}"
+${preferredDuration ? `预计时长: ${preferredDuration} 分钟` : ''}
+
+用户本周现有日程:
+${JSON.stringify(scheduleData, null, 2)}
+
+请分析用户的日程安排模式，并提供:
+1. 最佳时间建议（考虑用户的工作习惯和现有安排）
+2. 任务优先级建议
+3. 如何与现有日程协调
+4. 效率优化建议
+
+请以JSON格式返回:
+{
+  "suggestedTimes": [
+    {
+      "startTime": "ISO时间格式",
+      "endTime": "ISO时间格式",
+      "score": 0.0-1.0,
+      "reason": "详细理由"
+    }
+  ],
+  "prioritySuggestion": "low/medium/high/urgent",
+  "priorityReason": "优先级建议理由",
+  "coordination": "与现有日程的协调建议",
+  "efficiencyTips": ["建议1", "建议2"],
+  "overallAnalysis": "整体分析和建议"
+}`;
+
+    try {
+      const completion = await openaiClient.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1500,
+      });
+
+      const aiResponse = completion.choices[0]?.message?.content || '';
+      
+      // 定义预期的结果类型
+      interface PlanningResult {
+        suggestedTimes?: AITimeSlot[];
+        prioritySuggestion?: string;
+        priorityReason?: string;
+        coordination?: string;
+        efficiencyTips?: string[];
+        overallAnalysis?: string;
+      }
+
+      // 使用增强的JSON解析
+      const { data: result, parsed } = this.safeParseJSON<PlanningResult>(aiResponse, {});
+      
+      if (parsed && Object.keys(result).length > 0) {
+        return {
+          success: true,
+          suggestedTimes: result.suggestedTimes || [],
+          prioritySuggestion: result.prioritySuggestion,
+          priorityReason: result.priorityReason,
+          coordination: result.coordination,
+          efficiencyTips: result.efficiencyTips || [],
+          overallAnalysis: result.overallAnalysis || '分析完成',
+          aiPowered: true,
+        };
+      } else {
+        // 如果解析失败，提取可读文本作为整体分析
+        const readableAnalysis = this.extractReadableText(aiResponse);
+        return {
+          success: true,
+          overallAnalysis: readableAnalysis || '分析完成，但无法解析详细结果。请尝试使用其他AI模型。',
+          aiPowered: true,
+        };
+      }
+    } catch (error: any) {
+      console.error('AI分析失败:', error);
+      return {
+        success: false,
+        error: `AI分析失败: ${error.message || '未知错误'}`,
+      };
+    }
+  }
+
+  async optimizeSchedule(userId: string, startDate: Date, endDate: Date) {
+    const schedules = await prisma.schedule.findMany({
+      where: {
+        userId,
+        startTime: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    const optimizations: any[] = [];
+
+    // 简单的优化建议
+    schedules.forEach((schedule) => {
+      const hour = schedule.startTime.getHours();
+
+      if (schedule.priority === 'high' && hour > 15) {
+        optimizations.push({
+          scheduleId: schedule.id,
+          currentTime: schedule.startTime,
+          suggestedTime: new Date(schedule.startTime.setHours(9)),
+          reason: '高优先级任务建议在上午完成',
+          impact: '提高效率',
+        });
+      }
+    });
+
+    return {
+      optimizations,
+      overallScore: optimizations.length === 0 ? 0.9 : 0.7,
+    };
+  }
+}
+
+export default new AIService();
