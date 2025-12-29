@@ -28,37 +28,114 @@ export class AIService {
   private cleanAIResponse(response: string): string {
     let cleaned = response;
     
+    console.log('=== 原始AI响应 ===');
+    console.log(response.substring(0, 500));
+    console.log('=== 原始响应结束 ===');
+    
     // 移除 <think>...</think> 标签及其内容
     cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '');
     
-    // 移除代码块标记（支持多种格式）
-    cleaned = cleaned.replace(/```json\s*/gi, '');
-    cleaned = cleaned.replace(/```JSON\s*/gi, '');
-    cleaned = cleaned.replace(/```\s*/gi, '');
+    // 移除代码块标记（支持多种格式，包括带语言标记的）
+    // 先尝试提取代码块内的内容
+    const codeBlockMatch = cleaned.match(/```(?:json|JSON)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch && codeBlockMatch[1]) {
+      cleaned = codeBlockMatch[1];
+    } else {
+      // 如果没有代码块，移除单独的```标记
+      cleaned = cleaned.replace(/```json\s*/gi, '');
+      cleaned = cleaned.replace(/```JSON\s*/gi, '');
+      cleaned = cleaned.replace(/```\s*/gi, '');
+    }
     
     // 移除可能的文本说明（如 "以下是JSON格式的结果："）
-    cleaned = cleaned.replace(/^[^{]*(?=\{)/s, '');
-    cleaned = cleaned.replace(/\}[^}]*$/s, '}');
+    cleaned = cleaned.replace(/^[^{\[]*(?=[\{\[])/s, '');
     
-    // 尝试提取JSON对象（更严格的匹配）
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      cleaned = jsonMatch[0];
+    // 尝试找到最外层的JSON对象或数组
+    let braceCount = 0;
+    let bracketCount = 0;
+    let jsonStart = -1;
+    let jsonEnd = -1;
+    
+    for (let i = 0; i < cleaned.length; i++) {
+      const char = cleaned[i];
+      if (char === '{') {
+        if (jsonStart === -1 && bracketCount === 0) jsonStart = i;
+        braceCount++;
+      } else if (char === '}') {
+        braceCount--;
+        if (braceCount === 0 && bracketCount === 0 && jsonStart !== -1) {
+          jsonEnd = i + 1;
+          break;
+        }
+      } else if (char === '[') {
+        if (jsonStart === -1 && braceCount === 0) jsonStart = i;
+        bracketCount++;
+      } else if (char === ']') {
+        bracketCount--;
+        if (bracketCount === 0 && braceCount === 0 && jsonStart !== -1) {
+          jsonEnd = i + 1;
+          break;
+        }
+      }
     }
+    
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      cleaned = cleaned.substring(jsonStart, jsonEnd);
+    }
+    
+    console.log('=== 清理后的JSON ===');
+    console.log(cleaned.substring(0, 500));
+    console.log('=== 清理后结束 ===');
     
     return cleaned.trim();
   }
 
   // 安全解析JSON，带有更好的错误处理
-  private safeParseJSON<T>(response: string, fallback: T): { data: T; parsed: boolean } {
+  private safeParseJSON<T>(response: string, fallback: T): { data: T; parsed: boolean; rawResponse: string } {
     try {
       const cleaned = this.cleanAIResponse(response);
       const data = JSON.parse(cleaned) as T;
-      return { data, parsed: true };
+      console.log('=== JSON解析成功 ===');
+      console.log('解析结果:', JSON.stringify(data, null, 2).substring(0, 500));
+      return { data, parsed: true, rawResponse: response };
     } catch (error) {
-      console.log('JSON解析失败:', error);
-      return { data: fallback, parsed: false };
+      console.log('=== JSON解析失败 ===');
+      console.log('错误:', error);
+      console.log('原始响应前500字符:', response.substring(0, 500));
+      return { data: fallback, parsed: false, rawResponse: response };
     }
+  }
+
+  // 从JSON解析结果中提取可读分析文本
+  private extractAnalysisFromResult(result: any): string {
+    const parts: string[] = [];
+    
+    // 提取各种可能的分析字段
+    if (result.overallAnalysis) {
+      parts.push(`📊 整体分析:\n${result.overallAnalysis}`);
+    }
+    
+    if (result.coordination) {
+      parts.push(`📅 日程协调建议:\n${result.coordination}`);
+    }
+    
+    if (result.priorityReason) {
+      parts.push(`🎯 优先级建议:\n${result.priorityReason}`);
+    }
+    
+    if (result.efficiencyTips && result.efficiencyTips.length > 0) {
+      parts.push(`💡 效率建议:\n${result.efficiencyTips.map((tip: string, i: number) => `${i + 1}. ${tip}`).join('\n')}`);
+    }
+    
+    if (result.generalAdvice) {
+      parts.push(`📝 总体建议:\n${result.generalAdvice}`);
+    }
+    
+    if (result.productivityTips && result.productivityTips.length > 0) {
+      parts.push(`⚡ 效率提示:\n${result.productivityTips.map((tip: string, i: number) => `${i + 1}. ${tip}`).join('\n')}`);
+    }
+    
+    return parts.length > 0 ? parts.join('\n\n') : '';
   }
 
   // 从原始AI响应中提取可读文本（增强版）
@@ -68,8 +145,42 @@ export class AIService {
     // 移除 <think>...</think> 标签及其内容
     text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
     
+    // 尝试先解析JSON并提取有意义的内容
+    try {
+      const cleaned = this.cleanAIResponse(response);
+      const jsonData = JSON.parse(cleaned);
+      const extracted = this.extractAnalysisFromResult(jsonData);
+      if (extracted && extracted.length > 20) {
+        return extracted;
+      }
+    } catch (e) {
+      // 解析失败，继续使用文本提取
+    }
+    
     // 移除代码块（包括内容）
     text = text.replace(/```[\s\S]*?```/g, '');
+    
+    // 不要移除整个JSON对象，而是尝试提取其中的文本值
+    // 尝试提取JSON中的文本字段
+    const textFields = [
+      /"overallAnalysis"\s*:\s*"([^"]+)"/,
+      /"coordination"\s*:\s*"([^"]+)"/,
+      /"priorityReason"\s*:\s*"([^"]+)"/,
+      /"generalAdvice"\s*:\s*"([^"]+)"/,
+      /"reason"\s*:\s*"([^"]+)"/,
+    ];
+    
+    const extractedTexts: string[] = [];
+    for (const regex of textFields) {
+      const match = response.match(regex);
+      if (match && match[1]) {
+        extractedTexts.push(match[1]);
+      }
+    }
+    
+    if (extractedTexts.length > 0) {
+      return extractedTexts.join('\n\n');
+    }
     
     // 移除JSON对象
     text = text.replace(/\{[\s\S]*?\}/g, '');
@@ -87,14 +198,17 @@ export class AIService {
         return trimmed.length > 20 &&
                !trimmed.startsWith('{') &&
                !trimmed.startsWith('}') &&
-               !trimmed.startsWith('```');
+               !trimmed.startsWith('[') &&
+               !trimmed.startsWith(']') &&
+               !trimmed.startsWith('```') &&
+               !trimmed.startsWith('"');
       });
       
       if (lines.length > 0) {
-        return lines.slice(0, 3).join('\n');
+        return lines.slice(0, 5).join('\n');
       }
       
-      return '分析完成，请查看详细建议';
+      return 'AI分析已完成，但响应格式无法解析。请检查AI模型是否正确返回JSON格式。';
     }
     
     return text;
@@ -283,26 +397,30 @@ ${JSON.stringify(basicSlots.slice(0, 10), null, 2)}
 
         const aiResponse = completion.choices[0]?.message?.content || '';
         
+        console.log('=== suggestTimeSlots AI响应 ===');
+        
         // 使用增强的JSON解析
-        const { data: aiResult, parsed } = this.safeParseJSON<AIAnalysisResult>(aiResponse, {
+        const { data: aiResult, parsed, rawResponse } = this.safeParseJSON<AIAnalysisResult>(aiResponse, {
           recommendations: [],
           generalAdvice: '',
           productivityTips: [],
         });
         
         if (parsed && aiResult.recommendations && aiResult.recommendations.length > 0) {
+          // 从解析结果中提取可读分析
+          const analysisText = this.extractAnalysisFromResult(aiResult);
           return {
             recommendedSlots: aiResult.recommendations.slice(0, 5),
-            generalAdvice: aiResult.generalAdvice || '根据您的日程安排，以上是推荐的时间段',
+            generalAdvice: analysisText || aiResult.generalAdvice || '根据您的日程安排，以上是推荐的时间段',
             productivityTips: aiResult.productivityTips || [],
             aiPowered: true,
           };
         } else {
           // 如果解析失败，返回基础分析结果加上提取的可读文本
-          const readableAdvice = this.extractReadableText(aiResponse);
+          const readableAdvice = this.extractReadableText(rawResponse);
           return {
             recommendedSlots: basicSlots.slice(0, 5),
-            generalAdvice: readableAdvice,
+            generalAdvice: readableAdvice || '时间推荐分析完成',
             aiPowered: true,
           };
         }
@@ -457,6 +575,9 @@ ${JSON.stringify(scheduleData, null, 2)}
 
       const aiResponse = completion.choices[0]?.message?.content || '';
       
+      console.log('=== analyzeSchedulePlanning AI响应 ===');
+      console.log('响应长度:', aiResponse.length);
+      
       // 定义预期的结果类型
       interface PlanningResult {
         suggestedTimes?: AITimeSlot[];
@@ -468,9 +589,15 @@ ${JSON.stringify(scheduleData, null, 2)}
       }
 
       // 使用增强的JSON解析
-      const { data: result, parsed } = this.safeParseJSON<PlanningResult>(aiResponse, {});
+      const { data: result, parsed, rawResponse } = this.safeParseJSON<PlanningResult>(aiResponse, {});
+      
+      console.log('解析状态:', parsed);
+      console.log('结果字段数:', Object.keys(result).length);
       
       if (parsed && Object.keys(result).length > 0) {
+        // 从解析结果中构建更丰富的分析文本
+        const analysisText = this.extractAnalysisFromResult(result);
+        
         return {
           success: true,
           suggestedTimes: result.suggestedTimes || [],
@@ -478,15 +605,18 @@ ${JSON.stringify(scheduleData, null, 2)}
           priorityReason: result.priorityReason,
           coordination: result.coordination,
           efficiencyTips: result.efficiencyTips || [],
-          overallAnalysis: result.overallAnalysis || '分析完成',
+          overallAnalysis: analysisText || result.overallAnalysis || '分析完成',
           aiPowered: true,
         };
       } else {
         // 如果解析失败，提取可读文本作为整体分析
-        const readableAnalysis = this.extractReadableText(aiResponse);
+        console.log('JSON解析失败，尝试提取可读文本');
+        const readableAnalysis = this.extractReadableText(rawResponse);
+        console.log('提取的可读文本:', readableAnalysis.substring(0, 200));
+        
         return {
           success: true,
-          overallAnalysis: readableAnalysis || '分析完成，但无法解析详细结果。请尝试使用其他AI模型。',
+          overallAnalysis: readableAnalysis || 'AI分析已完成，但响应格式无法完全解析。',
           aiPowered: true,
         };
       }
