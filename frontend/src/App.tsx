@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { authService } from './services/authService';
 import { scheduleService } from './services/scheduleService';
 import { aiService } from './services/aiService';
-import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIConfig, AIPlanningResult, AISuggestion, GeneratedScheduleItem, GeneratePlanResult } from './types';
+import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIConfig, AIPlanningResult, AISuggestion, GeneratePlanResult } from './types';
 import './App.css';
 
 function App() {
