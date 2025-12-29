@@ -31,11 +31,16 @@ export class AIService {
     // 移除 <think>...</think> 标签及其内容
     cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '');
     
-    // 移除 ```json 和 ``` 代码块标记
+    // 移除代码块标记（支持多种格式）
     cleaned = cleaned.replace(/```json\s*/gi, '');
+    cleaned = cleaned.replace(/```JSON\s*/gi, '');
     cleaned = cleaned.replace(/```\s*/gi, '');
     
-    // 尝试提取JSON对象
+    // 移除可能的文本说明（如 "以下是JSON格式的结果："）
+    cleaned = cleaned.replace(/^[^{]*(?=\{)/s, '');
+    cleaned = cleaned.replace(/\}[^}]*$/s, '}');
+    
+    // 尝试提取JSON对象（更严格的匹配）
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       cleaned = jsonMatch[0];
@@ -56,25 +61,40 @@ export class AIService {
     }
   }
 
-  // 从原始AI响应中提取可读文本
+  // 从原始AI响应中提取可读文本（增强版）
   private extractReadableText(response: string): string {
     let text = response;
     
     // 移除 <think>...</think> 标签及其内容
     text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
     
-    // 移除JSON部分
-    text = text.replace(/\{[\s\S]*\}/g, '');
-    
-    // 移除代码块标记
+    // 移除代码块（包括内容）
     text = text.replace(/```[\s\S]*?```/g, '');
+    
+    // 移除JSON对象
+    text = text.replace(/\{[\s\S]*?\}/g, '');
+    
+    // 移除常见的AI响应前缀
+    text = text.replace(/^(好的|明白|以下是|根据你的要求|这是).*/gm, '');
     
     // 清理多余空白
     text = text.replace(/\n{3,}/g, '\n\n').trim();
     
-    // 如果没有可读文本，返回一个默认消息
+    // 如果清理后没有有效文本，尝试提取原始响应中的第一段文本
     if (!text || text.length < 10) {
-      return '分析完成，请查看推荐的时间段';
+      const lines = response.split('\n').filter(line => {
+        const trimmed = line.trim();
+        return trimmed.length > 20 &&
+               !trimmed.startsWith('{') &&
+               !trimmed.startsWith('}') &&
+               !trimmed.startsWith('```');
+      });
+      
+      if (lines.length > 0) {
+        return lines.slice(0, 3).join('\n');
+      }
+      
+      return '分析完成，请查看详细建议';
     }
     
     return text;
