@@ -633,11 +633,21 @@ function App() {
         <div className="schedule-header">
           <h2>我的日程 ({schedules.length})</h2>
           <div className="header-buttons">
-            {hasAIConfig && (
-              <button className="btn-smart-plan" onClick={() => setShowSmartPlanning(true)}>
-                🧪 智能科学规划
-              </button>
-            )}
+            <button
+              className="btn-smart-plan"
+              onClick={() => {
+                if (!hasAIConfig) {
+                  const confirmed = confirm('使用智能科学规划功能需要先配置AI密钥。是否现在配置？');
+                  if (confirmed) {
+                    setShowAIConfig(true);
+                  }
+                  return;
+                }
+                setShowSmartPlanning(true);
+              }}
+            >
+              🧪 智能科学规划
+            </button>
             <button className="btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
               {showAddForm ? '取消' : '+ 添加日程'}
             </button>
