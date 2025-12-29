@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import scheduleService from '../services/schedule.service';
 import aiService from '../services/ai.service';
+import prisma from '../config/database';
 
 export class ScheduleController {
   async createSchedule(req: AuthRequest, res: Response, next: NextFunction) {
@@ -216,7 +217,7 @@ export class ScheduleController {
   // 批量保存生成的日程
   async savePlan(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { schedules } = req.body;
+      const { schedules, description, summary } = req.body;
       
       if (!schedules || !Array.isArray(schedules) || schedules.length === 0) {
         return res.status(400).json({
@@ -230,12 +231,103 @@ export class ScheduleController {
 
       const result = await aiService.batchCreateSchedules(req.user!.userId, schedules);
       
+      // 保存规划历史
+      if (description && result.created > 0) {
+        try {
+          // @ts-ignore - 需要运行 npx prisma generate 后类型会正确
+          await (prisma as any).planningHistory.create({
+            data: {
+              userId: req.user!.userId,
+              description,
+              generatedPlan: JSON.stringify(schedules),
+              summary: summary || `生成了 ${schedules.length} 个日程`,
+              savedCount: result.created,
+            },
+          });
+        } catch (historyError) {
+          console.error('保存规划历史失败:', historyError);
+          // 不阻断主流程
+        }
+      }
+      
       return res.status(result.success ? 201 : 400).json({
         success: result.success,
         data: {
           created: result.created,
           errors: result.errors,
         },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  // 获取规划历史
+  async getPlanningHistory(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { limit = 20, offset = 0 } = req.query;
+      
+      // @ts-ignore - 需要运行 npx prisma generate 后类型会正确
+      const history = await (prisma as any).planningHistory.findMany({
+        where: { userId: req.user!.userId },
+        orderBy: { createdAt: 'desc' },
+        take: Number(limit),
+        skip: Number(offset),
+      });
+      
+      // @ts-ignore - 需要运行 npx prisma generate 后类型会正确
+      const total = await (prisma as any).planningHistory.count({
+        where: { userId: req.user!.userId },
+      });
+      
+      return res.json({
+        success: true,
+        data: {
+          items: history.map((h: any) => ({
+            id: h.id,
+            description: h.description,
+            generatedPlan: JSON.parse(h.generatedPlan),
+            summary: h.summary,
+            savedCount: h.savedCount,
+            createdAt: h.createdAt.toISOString(),
+          })),
+          total,
+        },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  // 删除规划历史
+  async deletePlanningHistory(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { historyId: id } = req.params;
+      
+      // 验证所有权
+      // @ts-ignore - 需要运行 npx prisma generate 后类型会正确
+      const history = await (prisma as any).planningHistory.findFirst({
+        where: { id, userId: req.user!.userId },
+      });
+      
+      if (!history) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: '规划历史不存在',
+          },
+        });
+      }
+      
+      // @ts-ignore - 需要运行 npx prisma generate 后类型会正确
+      await (prisma as any).planningHistory.delete({
+        where: { id },
+      });
+      
+      return res.json({
+        success: true,
+        message: '删除成功',
       });
     } catch (error) {
       return next(error);

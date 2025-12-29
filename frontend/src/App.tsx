@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { authService } from './services/authService';
 import { scheduleService } from './services/scheduleService';
 import { aiService } from './services/aiService';
-import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIConfig, AIPlanningResult, AISuggestion, GeneratePlanResult } from './types';
+import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIConfig, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem } from './types';
 import './App.css';
 
 function App() {
@@ -36,6 +36,21 @@ function App() {
   const [scheduleSuggestions, setScheduleSuggestions] = useState<AISuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
+  // 编辑日程
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+  const [editForm, setEditForm] = useState<CreateScheduleData>({
+    title: '',
+    description: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    priority: 'medium',
+    isAllDay: false,
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editConflicts, setEditConflicts] = useState<Schedule[]>([]);
+
   // 智能科学规划
   const [showSmartPlanning, setShowSmartPlanning] = useState(false);
   const [smartPlanDescription, setSmartPlanDescription] = useState('');
@@ -43,6 +58,12 @@ function App() {
   const [smartPlanResult, setSmartPlanResult] = useState<GeneratePlanResult | null>(null);
   const [selectedPlanItems, setSelectedPlanItems] = useState<Set<number>>(new Set());
   const [savingPlan, setSavingPlan] = useState(false);
+
+  // AI规划历史记录侧边栏
+  const [showHistorySidebar, setShowHistorySidebar] = useState(false);
+  const [planningHistory, setPlanningHistory] = useState<PlanningHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyTotal, setHistoryTotal] = useState(0);
 
   // 登录/注册表单
   const [formData, setFormData] = useState({
@@ -86,6 +107,7 @@ function App() {
     if (isAuthenticated) {
       loadSchedules();
       loadStats();
+      loadPlanningHistory();
     }
   }, [isAuthenticated]);
 
@@ -127,6 +149,33 @@ function App() {
       setStats(data);
     } catch (error) {
       console.error('加载统计失败:', error);
+    }
+  };
+
+  // 加载AI规划历史
+  const loadPlanningHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const data = await scheduleService.getPlanningHistory();
+      setPlanningHistory(data.items);
+      setHistoryTotal(data.total);
+    } catch (error) {
+      console.error('加载规划历史失败:', error);
+      setPlanningHistory([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // 删除规划历史
+  const handleDeleteHistory = async (id: string) => {
+    if (!confirm('确定要删除这条规划历史吗？')) return;
+    try {
+      await scheduleService.deletePlanningHistory(id);
+      await loadPlanningHistory();
+    } catch (error) {
+      console.error('删除规划历史失败:', error);
+      alert('删除失败');
     }
   };
 
@@ -351,6 +400,89 @@ function App() {
     }
   };
 
+  // 打开编辑模态框
+  const handleEditSchedule = (schedule: Schedule) => {
+    setEditingSchedule(schedule);
+    setEditForm({
+      title: schedule.title,
+      description: schedule.description || '',
+      startTime: new Date(schedule.startTime).toISOString().slice(0, 16),
+      endTime: new Date(schedule.endTime).toISOString().slice(0, 16),
+      location: schedule.location || '',
+      priority: schedule.priority,
+      isAllDay: schedule.isAllDay,
+    });
+    setEditConflicts([]);
+    setShowEditForm(true);
+  };
+
+  // 检查编辑时的冲突
+  const checkEditConflicts = async () => {
+    if (!editingSchedule || !editForm.startTime || !editForm.endTime) return;
+    
+    try {
+      const startTime = new Date(editForm.startTime).toISOString();
+      const endTime = new Date(editForm.endTime).toISOString();
+      const result = await scheduleService.checkConflicts(startTime, endTime, editingSchedule.id);
+      setEditConflicts(result.conflicts);
+    } catch (error) {
+      console.error('检查冲突失败:', error);
+      setEditConflicts([]);
+    }
+  };
+
+  // 编辑时间变化时检查冲突
+  useEffect(() => {
+    if (showEditForm && editForm.startTime && editForm.endTime) {
+      checkEditConflicts();
+    }
+  }, [editForm.startTime, editForm.endTime, showEditForm]);
+
+  // 保存编辑
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSchedule) return;
+
+    // 如果有冲突，确认是否继续
+    if (editConflicts.length > 0) {
+      const confirmed = confirm(
+        `检测到 ${editConflicts.length} 个时间冲突。是否仍要保存？`
+      );
+      if (!confirmed) return;
+    }
+
+    setEditLoading(true);
+    try {
+      const updateData = {
+        id: editingSchedule.id,
+        title: editForm.title,
+        description: editForm.description,
+        startTime: new Date(editForm.startTime).toISOString(),
+        endTime: new Date(editForm.endTime).toISOString(),
+        location: editForm.location,
+        priority: editForm.priority,
+        isAllDay: editForm.isAllDay,
+      };
+      
+      await scheduleService.updateSchedule(editingSchedule.id, updateData);
+      setShowEditForm(false);
+      setEditingSchedule(null);
+      setEditConflicts([]);
+      await loadSchedules();
+      await loadStats();
+    } catch (error: any) {
+      alert(error.response?.data?.error?.message || '保存失败');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const closeEditForm = () => {
+    setShowEditForm(false);
+    setEditingSchedule(null);
+    setEditConflicts([]);
+  };
+
   const closeAISuggestionsModal = () => {
     setShowAISuggestions(false);
     setSelectedSchedule(null);
@@ -414,7 +546,11 @@ function App() {
     setSavingPlan(true);
     try {
       const schedulesToSave = smartPlanResult.schedules.filter((_, i) => selectedPlanItems.has(i));
-      const result = await scheduleService.savePlan(schedulesToSave);
+      const result = await scheduleService.savePlan(
+        schedulesToSave,
+        smartPlanDescription,
+        smartPlanResult.summary
+      );
       
       if (result.created > 0) {
         alert(`成功保存 ${result.created} 个日程！${result.errors.length > 0 ? `\n${result.errors.length} 个失败` : ''}`);
@@ -424,6 +560,7 @@ function App() {
         setSelectedPlanItems(new Set());
         await loadSchedules();
         await loadStats();
+        await loadPlanningHistory(); // 刷新规划历史
       } else {
         alert('保存失败: ' + (result.errors.join(', ') || '未知错误'));
       }
@@ -527,10 +664,88 @@ function App() {
   }
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${showHistorySidebar ? 'sidebar-open' : ''}`}>
+      {/* AI规划历史记录侧边栏 */}
+      <aside className={`history-sidebar ${showHistorySidebar ? 'open' : ''}`}>
+        <div className="sidebar-header">
+          <h3>📜 规划历史</h3>
+          <button className="sidebar-close" onClick={() => setShowHistorySidebar(false)}>×</button>
+        </div>
+        <div className="sidebar-content">
+          {loadingHistory ? (
+            <div className="loading-state">
+              <div className="spinner"></div>
+              <p>加载中...</p>
+            </div>
+          ) : planningHistory.length === 0 ? (
+            <div className="empty-history">
+              <p>📭 暂无规划历史</p>
+              <p className="hint">使用智能科学规划功能后，历史记录会显示在这里</p>
+            </div>
+          ) : (
+            <div className="history-list">
+              <div className="history-count">共 {historyTotal} 条记录</div>
+              {planningHistory.map((item) => (
+                <div key={item.id} className="history-item">
+                  <div className="history-item-header">
+                    <span className="history-time">{formatDate(item.createdAt)}</span>
+                    <button
+                      className="btn-delete-history"
+                      onClick={() => handleDeleteHistory(item.id)}
+                      title="删除记录"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                  <div className="history-description">
+                    <strong>描述：</strong>{item.description}
+                  </div>
+                  {item.summary && (
+                    <div className="history-summary">
+                      <strong>摘要：</strong>{item.summary}
+                    </div>
+                  )}
+                  <div className="history-schedules">
+                    <strong>生成的日程 ({item.generatedPlan.length})：</strong>
+                    <div className="history-schedule-list">
+                      {item.generatedPlan.map((schedule, index) => (
+                        <div key={index} className="history-schedule-item">
+                          <div className="history-schedule-title">
+                            <span className={`priority-dot priority-${schedule.priority}`}></span>
+                            {schedule.title}
+                          </div>
+                          <div className="history-schedule-time">
+                            {formatDate(schedule.startTime)} - {formatDate(schedule.endTime)}
+                          </div>
+                          {schedule.reason && (
+                            <div className="history-schedule-reason">
+                              💡 {schedule.reason}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="history-saved-count">
+                    ✅ 已保存 {item.savedCount} 个日程
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </aside>
+
       <header className="app-header">
         <h1>📅 智能日程表</h1>
         <div className="header-actions">
+          <button
+            className={`btn-history ${showHistorySidebar ? 'active' : ''}`}
+            onClick={() => setShowHistorySidebar(!showHistorySidebar)}
+            title="规划历史"
+          >
+            📜 规划历史 {historyTotal > 0 && `(${historyTotal})`}
+          </button>
           <span>欢迎, {user?.name}</span>
           <button className="btn-settings" onClick={() => setShowAIConfig(true)}>
             ⚙️ AI配置
@@ -734,6 +949,11 @@ function App() {
                                   )}
                                   {schedule.location && (
                                     <div className="plan-item-location">📍 {schedule.location}</div>
+                                  )}
+                                  {schedule.reason && (
+                                    <div className="plan-item-reason">
+                                      💡 <strong>安排理由：</strong>{schedule.reason}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -1047,29 +1267,42 @@ function App() {
                 />
                 <div
                   className="schedule-content"
-                  onClick={() => handleViewAISuggestions(schedule)}
+                  onClick={() => handleEditSchedule(schedule)}
                   style={{ cursor: 'pointer' }}
                 >
                   <h3>{schedule.title}</h3>
                   {schedule.description && <p>{schedule.description}</p>}
                   <div className="schedule-meta">
-                    <span>📅 {formatDate(schedule.startTime)}</span>
+                    <span>📅 {formatDate(schedule.startTime)} - {formatDate(schedule.endTime)}</span>
                     {schedule.location && <span>📍 {schedule.location}</span>}
                     <span className="schedule-status">{schedule.status}</span>
                   </div>
-                  <div className="schedule-ai-hint">
-                    🤖 点击查看AI建议
+                  <div className="schedule-edit-hint">
+                    ✏️ 点击编辑日程
                   </div>
                 </div>
-                <button
-                  className="btn-delete"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteSchedule(schedule.id);
-                  }}
-                >
-                  删除
-                </button>
+                <div className="schedule-actions">
+                  <button
+                    className="btn-ai-view"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewAISuggestions(schedule);
+                    }}
+                    title="查看AI建议"
+                  >
+                    🤖
+                  </button>
+                  <button
+                    className="btn-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSchedule(schedule.id);
+                    }}
+                    title="删除日程"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -1182,6 +1415,112 @@ function App() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* 编辑日程模态框 */}
+        {showEditForm && editingSchedule && (
+          <div className="modal-overlay" onClick={closeEditForm}>
+            <div className="modal-content edit-schedule-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>✏️ 编辑日程</h2>
+                <button className="modal-close" onClick={closeEditForm}>
+                  ×
+                </button>
+              </div>
+              
+              <form onSubmit={handleSaveEdit} className="edit-form">
+                <div className="form-group">
+                  <label htmlFor="edit-title">标题</label>
+                  <input
+                    id="edit-title"
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="edit-description">描述</label>
+                  <textarea
+                    id="edit-description"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="edit-startTime">开始时间</label>
+                    <input
+                      id="edit-startTime"
+                      type="datetime-local"
+                      value={editForm.startTime}
+                      onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="edit-endTime">结束时间</label>
+                    <input
+                      id="edit-endTime"
+                      type="datetime-local"
+                      value={editForm.endTime}
+                      onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="edit-location">地点</label>
+                  <input
+                    id="edit-location"
+                    type="text"
+                    value={editForm.location}
+                    onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="edit-priority">优先级</label>
+                  <select
+                    id="edit-priority"
+                    value={editForm.priority}
+                    onChange={(e) => setEditForm({ ...editForm, priority: e.target.value as any })}
+                  >
+                    <option value="low">低优先级</option>
+                    <option value="medium">中优先级</option>
+                    <option value="high">高优先级</option>
+                    <option value="urgent">紧急</option>
+                  </select>
+                </div>
+
+                {editConflicts.length > 0 && (
+                  <div className="conflict-warning">
+                    ⚠️ 时间冲突警告：与 {editConflicts.length} 个日程冲突
+                    <div className="conflict-list">
+                      {editConflicts.map((conflict) => (
+                        <div key={conflict.id} className="conflict-item">
+                          • {conflict.title} ({formatDate(conflict.startTime)} - {formatDate(conflict.endTime)})
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-actions">
+                  <button type="submit" className="btn-save" disabled={editLoading}>
+                    {editLoading ? '保存中...' : editConflicts.length > 0 ? '⚠️ 仍要保存' : '保存修改'}
+                  </button>
+                  <button type="button" className="btn-cancel" onClick={closeEditForm}>
+                    取消
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

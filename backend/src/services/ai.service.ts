@@ -31,6 +31,7 @@ interface GeneratedScheduleItem {
   endTime: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   location?: string;
+  reason?: string;  // AI安排此日程的理由
 }
 
 interface GeneratePlanResult {
@@ -717,11 +718,17 @@ ${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2
       "startTime": "ISO时间格式，如2024-01-15T14:00:00.000Z",
       "endTime": "ISO时间格式",
       "priority": "low/medium/high/urgent",
-      "location": "地点（可选）"
+      "location": "地点（可选）",
+      "reason": "为什么把这个任务安排在这个时间段的理由（必填，要具体说明考虑因素）"
     }
   ],
   "summary": "对生成的日程安排的简要说明"
 }
+
+**关于reason字段的要求**：
+- 每个日程都必须有reason字段
+- 理由要具体，说明为什么选择这个时间段
+- 可以包含：与其他任务的关系、效率考虑、休息安排等
 
 注意：
 - 时间必须是有效的ISO 8601格式，使用UTC时间
@@ -786,6 +793,7 @@ ${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2
             endTime: s.endTime,
             priority: (['low', 'medium', 'high', 'urgent'].includes(s.priority) ? s.priority : 'medium') as 'low' | 'medium' | 'high' | 'urgent',
             location: s.location || '',
+            reason: s.reason || '根据您的需求智能安排',
           }));
 
         if (validatedSchedules.length === 0) {

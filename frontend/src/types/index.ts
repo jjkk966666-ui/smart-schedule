@@ -178,6 +178,7 @@ export interface GeneratedScheduleItem {
   endTime: string;
   priority: SchedulePriority;
   location?: string;
+  reason?: string;  // AI安排此日程的理由
 }
 
 export interface GeneratePlanResult {
@@ -190,6 +191,21 @@ export interface GeneratePlanResult {
 export interface SavePlanResult {
   created: number;
   errors: string[];
+}
+
+// 规划历史类型
+export interface PlanningHistoryItem {
+  id: string;
+  description: string;
+  generatedPlan: GeneratedScheduleItem[];
+  summary: string | null;
+  savedCount: number;
+  createdAt: string;
+}
+
+export interface PlanningHistoryResponse {
+  items: PlanningHistoryItem[];
+  total: number;
 }
 
 export interface ScheduleOptimization {

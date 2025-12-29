@@ -1262,8 +1262,8 @@ body {
   margin-bottom: 0;
 }
 
-/* 日程卡片的AI提示 */
-.schedule-ai-hint {
+/* 日程卡片的编辑提示 */
+.schedule-edit-hint {
   margin-top: 10px;
   font-size: 12px;
   color: #667eea;
@@ -1271,7 +1271,7 @@ body {
   transition: opacity 0.3s;
 }
 
-.schedule-content:hover .schedule-ai-hint {
+.schedule-content:hover .schedule-edit-hint {
   opacity: 1;
 }
 
@@ -1279,6 +1279,153 @@ body {
 .schedule-card:hover .schedule-content {
   background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
   border-radius: 8px;
+}
+
+/* 日程卡片操作按钮 */
+.schedule-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-ai-view {
+  padding: 8px 12px;
+  background: #e3f2fd;
+  color: #2196f3;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.btn-ai-view:hover {
+  background: #2196f3;
+  color: white;
+}
+
+.schedule-card .btn-delete {
+  padding: 8px 12px;
+  background: #ffebee;
+  color: #f44336;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.schedule-card .btn-delete:hover {
+  background: #f44336;
+  color: white;
+}
+
+/* 编辑日程模态框 */
+.edit-schedule-modal {
+  max-width: 600px;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.edit-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-form .form-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.edit-form .form-group input,
+.edit-form .form-group textarea,
+.edit-form .form-group select {
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  transition: border-color 0.3s;
+}
+
+.edit-form .form-group input:focus,
+.edit-form .form-group textarea:focus,
+.edit-form .form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.edit-form .form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.edit-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.edit-form .form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.edit-form .btn-save {
+  flex: 1;
+  padding: 14px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.edit-form .btn-save:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.edit-form .btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.edit-form .btn-cancel {
+  flex: 1;
+  padding: 14px;
+  background: #f0f0f0;
+  color: #666;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.edit-form .btn-cancel:hover {
+  background: #e0e0e0;
+}
+
+/* 响应式 - 编辑模态框 */
+@media (max-width: 768px) {
+  .edit-form .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .schedule-actions {
+    flex-direction: row;
+  }
 }
 
 /* 智能科学规划样式 */
@@ -1499,6 +1646,17 @@ body {
   color: #999;
 }
 
+.plan-item-reason {
+  font-size: 13px;
+  color: #2e7d32;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+  border-left: 3px solid #4caf50;
+  line-height: 1.5;
+}
+
 .plan-actions {
   display: flex;
   gap: 12px;
@@ -1558,5 +1716,276 @@ body {
   .plan-actions .btn-cancel {
     flex: none;
     width: 100%;
+  }
+}
+
+/* AI规划历史记录侧边栏 */
+.history-sidebar {
+  position: fixed;
+  top: 0;
+  left: -400px;
+  width: 400px;
+  height: 100vh;
+  background: white;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  transition: left 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-sidebar.open {
+  left: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.sidebar-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+
+.sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.empty-history {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.empty-history p {
+  margin: 10px 0;
+}
+
+.empty-history .hint {
+  font-size: 13px;
+  color: #bbb;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-count {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.history-item {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  transition: box-shadow 0.3s;
+}
+
+.history-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.history-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.btn-delete-history {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+
+.btn-delete-history:hover {
+  background: #ffebee;
+}
+
+.history-description {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.history-summary {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #e8f5e9;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.history-schedules {
+  font-size: 13px;
+  color: #333;
+}
+
+.history-schedule-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-schedule-item {
+  background: white;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+}
+
+.history-schedule-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.priority-dot.priority-urgent {
+  background: #f44336;
+}
+
+.priority-dot.priority-high {
+  background: #ff9800;
+}
+
+.priority-dot.priority-medium {
+  background: #2196f3;
+}
+
+.priority-dot.priority-low {
+  background: #4caf50;
+}
+
+.history-schedule-time {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.history-schedule-reason {
+  font-size: 12px;
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.history-saved-count {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #4caf50;
+  font-weight: 600;
+}
+
+/* 规划历史按钮 */
+.btn-history {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-history:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-history.active {
+  background: linear-gradient(135deg, #5568d3 0%, #6a3f91 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 侧边栏打开时主内容偏移 */
+.app-container.sidebar-open .app-header,
+.app-container.sidebar-open .app-main {
+  margin-left: 400px;
+  transition: margin-left 0.3s ease;
+}
+
+/* 响应式 - 侧边栏 */
+@media (max-width: 768px) {
+  .history-sidebar {
+    width: 100%;
+    left: -100%;
+  }
+  
+  .history-sidebar.open {
+    left: 0;
+  }
+  
+  .app-container.sidebar-open .app-header,
+  .app-container.sidebar-open .app-main {
+    margin-left: 0;
+  }
+  
+  .btn-history {
+    padding: 8px 16px;
+    font-size: 13px;
   }
 }

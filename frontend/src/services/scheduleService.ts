@@ -12,6 +12,7 @@ import type {
   GeneratedScheduleItem,
   GeneratePlanResult,
   SavePlanResult,
+  PlanningHistoryResponse,
 } from '../types';
 
 // 扩展CreateScheduleData以支持AI建议
@@ -122,11 +123,24 @@ export const scheduleService = {
     }
   },
 
-  async savePlan(schedules: GeneratedScheduleItem[]): Promise<SavePlanResult> {
+  async savePlan(schedules: GeneratedScheduleItem[], description?: string, summary?: string): Promise<SavePlanResult> {
     const response = await api.post<{
       success: boolean;
       data: { created: number; errors: string[] };
-    }>('/schedules/save-plan', { schedules });
+    }>('/schedules/save-plan', { schedules, description, summary });
     return response.data.data;
+  },
+
+  // 规划历史相关方法
+  async getPlanningHistory(limit = 20, offset = 0): Promise<PlanningHistoryResponse> {
+    const response = await api.get<{ success: boolean; data: PlanningHistoryResponse }>(
+      '/schedules/planning-history',
+      { params: { limit, offset } }
+    );
+    return response.data.data;
+  },
+
+  async deletePlanningHistory(id: string): Promise<void> {
+    await api.delete(`/schedules/planning-history/${id}`);
   },
 };

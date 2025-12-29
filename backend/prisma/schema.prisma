@@ -25,8 +25,9 @@ model User {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // 关系
-  schedules     Schedule[]
-  refreshTokens RefreshToken[]
+  schedules        Schedule[]
+  refreshTokens    RefreshToken[]
+  planningHistory  PlanningHistory[]
 
   @@map("users")
 }
@@ -108,4 +109,20 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
+}
+
+// AI规划历史表
+model PlanningHistory {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  description   String   // 用户的输入描述
+  generatedPlan String   @map("generated_plan") // JSON: 生成的日程列表及理由
+  summary       String?  // AI的规划摘要
+  savedCount    Int      @default(0) @map("saved_count") // 实际保存的日程数量
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // 关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("planning_history")
 }
