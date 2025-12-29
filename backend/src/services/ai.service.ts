@@ -683,6 +683,7 @@ ${JSON.stringify(scheduleData, null, 2)}
 
 当前时间: ${now.toISOString()}
 当前日期: ${now.toLocaleDateString('zh-CN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+用户时区: Asia/Shanghai (UTC+8)
 
 用户的日程需求描述:
 "${description}"
@@ -691,11 +692,21 @@ ${JSON.stringify(scheduleData, null, 2)}
 ${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2) : '暂无现有日程'}
 
 请根据用户的描述，生成具体的日程安排。要求：
-1. 将模糊的时间描述转换为精确的日期和时间（如"下午"转为14:00-18:00，"晚上"转为19:00-22:00）
+1. 将模糊的时间描述转换为精确的日期和时间：
+   - "早上/上午" → 08:00-12:00
+   - "下午" → 14:00-18:00
+   - "晚上" → 19:00-22:00
+   - 除非用户明确说要熬夜或通宵，否则不要安排22:00以后的日程
 2. 如果用户说"这周一到周三"，请根据当前日期计算出具体日期
 3. 确保生成的日程时间不与现有日程重叠
-4. 每个日程都要有合理的时长
+4. 每个日程都要有合理的时长（通常1-3小时）
 5. 根据任务性质设置合适的优先级
+
+**重要的时间限制规则**：
+- 所有日程必须安排在 07:00 到 22:00 之间
+- 绝对不要安排凌晨（00:00-06:59）的日程，这是休息时间
+- 如果一天内任务太多无法安排完，应该分配到接下来的几天
+- 每天建议最多安排4-6个学习/工作日程，保证休息时间
 
 请以JSON格式返回，格式如下:
 {
@@ -713,9 +724,10 @@ ${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2
 }
 
 注意：
-- 时间必须是有效的ISO 8601格式
+- 时间必须是有效的ISO 8601格式，使用UTC时间
 - 确保 endTime 晚于 startTime
 - 日程不要安排在过去的时间
+- **再次强调：不要安排凌晨时间（0点-7点）的日程！**
 - 只返回JSON，不要其他内容`;
 
     try {
@@ -741,7 +753,32 @@ ${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2
       if (parsed && result.schedules && result.schedules.length > 0) {
         // 验证和修正日程数据
         const validatedSchedules = result.schedules
-          .filter(s => s.title && s.startTime && s.endTime)
+          .filter(s => {
+            if (!s.title || !s.startTime || !s.endTime) return false;
+            
+            // 检查时间是否在合理范围内（07:00-22:00）
+            try {
+              const startDate = new Date(s.startTime);
+              const endDate = new Date(s.endTime);
+              const startHour = startDate.getUTCHours() + 8; // 转换为北京时间
+              const endHour = endDate.getUTCHours() + 8;
+              
+              // 过滤掉凌晨时间的日程（0-7点）
+              if (startHour < 7 || startHour >= 24 || (startHour >= 0 && startHour < 7)) {
+                console.log(`过滤不合理时间日程: ${s.title}, 开始时间: ${startHour}:00`);
+                return false;
+              }
+              // 过滤掉太晚结束的日程（23点以后）
+              if (endHour > 23 || (endHour >= 0 && endHour < 7)) {
+                console.log(`过滤不合理时间日程: ${s.title}, 结束时间: ${endHour}:00`);
+                return false;
+              }
+            } catch (e) {
+              return false;
+            }
+            
+            return true;
+          })
           .map(s => ({
             title: s.title,
             description: s.description || '',
@@ -754,7 +791,7 @@ ${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2
         if (validatedSchedules.length === 0) {
           return {
             success: false,
-            error: 'AI生成的日程格式无效，请重试或修改描述',
+            error: 'AI生成的日程时间不合理（凌晨时间）或格式无效，请重试',
           };
         }
 
