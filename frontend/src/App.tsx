@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { authService } from './services/authService';
 import { scheduleService } from './services/scheduleService';
 import { aiService } from './services/aiService';
-import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIConfig, AIPlanningResult, AISuggestion } from './types';
+import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIConfig, AIPlanningResult, AISuggestion, GeneratedScheduleItem, GeneratePlanResult } from './types';
 import './App.css';
 
 function App() {
@@ -35,6 +35,14 @@ function App() {
   const [showAISuggestions, setShowAISuggestions] = useState(false);
   const [scheduleSuggestions, setScheduleSuggestions] = useState<AISuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+  // 智能科学规划
+  const [showSmartPlanning, setShowSmartPlanning] = useState(false);
+  const [smartPlanDescription, setSmartPlanDescription] = useState('');
+  const [smartPlanLoading, setSmartPlanLoading] = useState(false);
+  const [smartPlanResult, setSmartPlanResult] = useState<GeneratePlanResult | null>(null);
+  const [selectedPlanItems, setSelectedPlanItems] = useState<Set<number>>(new Set());
+  const [savingPlan, setSavingPlan] = useState(false);
 
   // 登录/注册表单
   const [formData, setFormData] = useState({
@@ -358,6 +366,81 @@ function App() {
     }
   };
 
+  // 智能科学规划功能
+  const handleSmartPlanGenerate = async () => {
+    if (!smartPlanDescription.trim()) {
+      alert('请输入日程描述');
+      return;
+    }
+
+    setSmartPlanLoading(true);
+    setSmartPlanResult(null);
+    setSelectedPlanItems(new Set());
+
+    try {
+      const result = await scheduleService.generatePlan(smartPlanDescription);
+      setSmartPlanResult(result);
+      
+      // 默认选中所有生成的日程
+      if (result.success && result.schedules) {
+        setSelectedPlanItems(new Set(result.schedules.map((_, i) => i)));
+      }
+    } catch (error: any) {
+      setSmartPlanResult({
+        success: false,
+        error: error.response?.data?.error?.message || '生成失败，请检查AI配置',
+      });
+    } finally {
+      setSmartPlanLoading(false);
+    }
+  };
+
+  const togglePlanItemSelection = (index: number) => {
+    const newSelected = new Set(selectedPlanItems);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedPlanItems(newSelected);
+  };
+
+  const handleSaveSelectedPlan = async () => {
+    if (!smartPlanResult?.schedules || selectedPlanItems.size === 0) {
+      alert('请至少选择一个日程');
+      return;
+    }
+
+    setSavingPlan(true);
+    try {
+      const schedulesToSave = smartPlanResult.schedules.filter((_, i) => selectedPlanItems.has(i));
+      const result = await scheduleService.savePlan(schedulesToSave);
+      
+      if (result.created > 0) {
+        alert(`成功保存 ${result.created} 个日程！${result.errors.length > 0 ? `\n${result.errors.length} 个失败` : ''}`);
+        setShowSmartPlanning(false);
+        setSmartPlanDescription('');
+        setSmartPlanResult(null);
+        setSelectedPlanItems(new Set());
+        await loadSchedules();
+        await loadStats();
+      } else {
+        alert('保存失败: ' + (result.errors.join(', ') || '未知错误'));
+      }
+    } catch (error: any) {
+      alert('保存失败: ' + (error.response?.data?.error?.message || '未知错误'));
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const closeSmartPlanning = () => {
+    setShowSmartPlanning(false);
+    setSmartPlanDescription('');
+    setSmartPlanResult(null);
+    setSelectedPlanItems(new Set());
+  };
+
   const handleDeleteSchedule = async (id: string) => {
     if (!confirm('确定要删除这个日程吗?')) return;
     try {
@@ -549,10 +632,140 @@ function App() {
 
         <div className="schedule-header">
           <h2>我的日程 ({schedules.length})</h2>
-          <button className="btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
-            {showAddForm ? '取消' : '+ 添加日程'}
-          </button>
+          <div className="header-buttons">
+            {hasAIConfig && (
+              <button className="btn-smart-plan" onClick={() => setShowSmartPlanning(true)}>
+                🧪 智能科学规划
+              </button>
+            )}
+            <button className="btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
+              {showAddForm ? '取消' : '+ 添加日程'}
+            </button>
+          </div>
         </div>
+
+        {/* 智能科学规划对话框 */}
+        {showSmartPlanning && (
+          <div className="modal-overlay" onClick={closeSmartPlanning}>
+            <div className="modal-content smart-planning-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>🧪 智能科学规划</h2>
+                <button className="modal-close" onClick={closeSmartPlanning}>×</button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="smart-plan-input-section">
+                  <label htmlFor="planDescription">描述你的日程安排需求：</label>
+                  <textarea
+                    id="planDescription"
+                    placeholder="例如：我这周一到周三要准备考试，每天下午复习数学，晚上复习英语"
+                    value={smartPlanDescription}
+                    onChange={(e) => setSmartPlanDescription(e.target.value)}
+                    rows={4}
+                    disabled={smartPlanLoading}
+                  />
+                  <button
+                    className="btn-generate"
+                    onClick={handleSmartPlanGenerate}
+                    disabled={smartPlanLoading || !smartPlanDescription.trim()}
+                  >
+                    {smartPlanLoading ? '⏳ AI正在规划...' : '🚀 生成日程计划'}
+                  </button>
+                </div>
+
+                {smartPlanLoading && (
+                  <div className="loading-state">
+                    <div className="spinner"></div>
+                    <p>AI正在分析您的需求并生成科学的日程安排...</p>
+                  </div>
+                )}
+
+                {smartPlanResult && !smartPlanLoading && (
+                  <div className="smart-plan-result">
+                    {smartPlanResult.success ? (
+                      <>
+                        {smartPlanResult.summary && (
+                          <div className="plan-summary">
+                            <h4>📋 规划摘要</h4>
+                            <p>{smartPlanResult.summary}</p>
+                          </div>
+                        )}
+                        
+                        <div className="plan-schedules">
+                          <div className="plan-schedules-header">
+                            <h4>📅 生成的日程 ({smartPlanResult.schedules?.length || 0})</h4>
+                            <span className="select-hint">点击日程可取消选择</span>
+                          </div>
+                          
+                          <div className="plan-schedule-list">
+                            {smartPlanResult.schedules?.map((schedule, index) => (
+                              <div
+                                key={index}
+                                className={`plan-schedule-item ${selectedPlanItems.has(index) ? 'selected' : 'unselected'}`}
+                                onClick={() => togglePlanItemSelection(index)}
+                              >
+                                <div className="plan-item-checkbox">
+                                  {selectedPlanItems.has(index) ? '✅' : '⬜'}
+                                </div>
+                                <div className="plan-item-content">
+                                  <div className="plan-item-title">
+                                    <span className={`priority-badge priority-${schedule.priority}`}>
+                                      {schedule.priority === 'urgent' ? '🔴' :
+                                       schedule.priority === 'high' ? '🟠' :
+                                       schedule.priority === 'medium' ? '🔵' : '🟢'}
+                                    </span>
+                                    {schedule.title}
+                                  </div>
+                                  <div className="plan-item-time">
+                                    📅 {formatDate(schedule.startTime)} - {formatDate(schedule.endTime)}
+                                  </div>
+                                  {schedule.description && (
+                                    <div className="plan-item-desc">{schedule.description}</div>
+                                  )}
+                                  {schedule.location && (
+                                    <div className="plan-item-location">📍 {schedule.location}</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="plan-actions">
+                          <button
+                            className="btn-save-plan"
+                            onClick={handleSaveSelectedPlan}
+                            disabled={savingPlan || selectedPlanItems.size === 0}
+                          >
+                            {savingPlan ? '⏳ 保存中...' : `💾 保存选中的 ${selectedPlanItems.size} 个日程`}
+                          </button>
+                          <button className="btn-cancel" onClick={closeSmartPlanning}>
+                            取消
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="error-state">
+                        <p>❌ {smartPlanResult.error}</p>
+                        {!hasAIConfig && (
+                          <button
+                            className="btn-settings-small"
+                            onClick={() => {
+                              closeSmartPlanning();
+                              setShowAIConfig(true);
+                            }}
+                          >
+                            配置AI密钥
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {showAddForm && (
           <div>

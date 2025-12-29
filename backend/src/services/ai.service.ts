@@ -23,6 +23,23 @@ interface AIAnalysisResult {
   productivityTips: string[];
 }
 
+// 智能规划生成的日程项
+interface GeneratedScheduleItem {
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  location?: string;
+}
+
+interface GeneratePlanResult {
+  success: boolean;
+  schedules?: GeneratedScheduleItem[];
+  summary?: string;
+  error?: string;
+}
+
 export class AIService {
   // 清理AI响应，移除思考标签和提取JSON
   private cleanAIResponse(response: string): string {
@@ -627,6 +644,187 @@ ${JSON.stringify(scheduleData, null, 2)}
         error: `AI分析失败: ${error.message || '未知错误'}`,
       };
     }
+  }
+
+  // 智能科学规划 - 根据模糊描述生成具体日程
+  async generateSchedulePlan(userId: string, description: string): Promise<GeneratePlanResult> {
+    const now = new Date();
+    
+    const openaiClient = await this.getOpenAIClient(userId);
+    if (!openaiClient) {
+      return {
+        success: false,
+        error: '请先配置AI API密钥才能使用智能规划功能',
+      };
+    }
+
+    const model = await this.getAIModel(userId);
+    
+    // 获取用户现有日程以避免冲突
+    const endOfWeek = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 未来两周
+    const existingSchedules = await prisma.schedule.findMany({
+      where: {
+        userId,
+        startTime: {
+          gte: now,
+          lte: endOfWeek,
+        },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    const existingScheduleData = existingSchedules.map(s => ({
+      title: s.title,
+      startTime: s.startTime.toISOString(),
+      endTime: s.endTime.toISOString(),
+    }));
+
+    const prompt = `你是一个专业的时间管理和日程规划AI助手。用户用自然语言描述了他们的日程安排需求，请帮助将其转换为具体的、可执行的日程列表。
+
+当前时间: ${now.toISOString()}
+当前日期: ${now.toLocaleDateString('zh-CN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+
+用户的日程需求描述:
+"${description}"
+
+用户现有日程（请避免时间冲突）:
+${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2) : '暂无现有日程'}
+
+请根据用户的描述，生成具体的日程安排。要求：
+1. 将模糊的时间描述转换为精确的日期和时间（如"下午"转为14:00-18:00，"晚上"转为19:00-22:00）
+2. 如果用户说"这周一到周三"，请根据当前日期计算出具体日期
+3. 确保生成的日程时间不与现有日程重叠
+4. 每个日程都要有合理的时长
+5. 根据任务性质设置合适的优先级
+
+请以JSON格式返回，格式如下:
+{
+  "schedules": [
+    {
+      "title": "日程标题",
+      "description": "详细描述（可选）",
+      "startTime": "ISO时间格式，如2024-01-15T14:00:00.000Z",
+      "endTime": "ISO时间格式",
+      "priority": "low/medium/high/urgent",
+      "location": "地点（可选）"
+    }
+  ],
+  "summary": "对生成的日程安排的简要说明"
+}
+
+注意：
+- 时间必须是有效的ISO 8601格式
+- 确保 endTime 晚于 startTime
+- 日程不要安排在过去的时间
+- 只返回JSON，不要其他内容`;
+
+    try {
+      const completion = await openaiClient.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
+
+      const aiResponse = completion.choices[0]?.message?.content || '';
+      
+      console.log('=== generateSchedulePlan AI响应 ===');
+      console.log('响应长度:', aiResponse.length);
+      
+      interface PlanResult {
+        schedules?: GeneratedScheduleItem[];
+        summary?: string;
+      }
+
+      const { data: result, parsed } = this.safeParseJSON<PlanResult>(aiResponse, {});
+      
+      if (parsed && result.schedules && result.schedules.length > 0) {
+        // 验证和修正日程数据
+        const validatedSchedules = result.schedules
+          .filter(s => s.title && s.startTime && s.endTime)
+          .map(s => ({
+            title: s.title,
+            description: s.description || '',
+            startTime: s.startTime,
+            endTime: s.endTime,
+            priority: (['low', 'medium', 'high', 'urgent'].includes(s.priority) ? s.priority : 'medium') as 'low' | 'medium' | 'high' | 'urgent',
+            location: s.location || '',
+          }));
+
+        if (validatedSchedules.length === 0) {
+          return {
+            success: false,
+            error: 'AI生成的日程格式无效，请重试或修改描述',
+          };
+        }
+
+        return {
+          success: true,
+          schedules: validatedSchedules,
+          summary: result.summary || `已生成 ${validatedSchedules.length} 个日程`,
+        };
+      } else {
+        // 尝试从响应中提取可读信息
+        const readableText = this.extractReadableText(aiResponse);
+        return {
+          success: false,
+          error: readableText || 'AI无法解析您的描述，请尝试更具体的描述',
+        };
+      }
+    } catch (error: any) {
+      console.error('AI规划生成失败:', error);
+      return {
+        success: false,
+        error: `AI规划失败: ${error.message || '未知错误'}`,
+      };
+    }
+  }
+
+  // 批量创建日程
+  async batchCreateSchedules(userId: string, schedules: GeneratedScheduleItem[]): Promise<{ success: boolean; created: number; errors: string[] }> {
+    const errors: string[] = [];
+    let created = 0;
+
+    for (const schedule of schedules) {
+      try {
+        const startTime = new Date(schedule.startTime);
+        const endTime = new Date(schedule.endTime);
+
+        // 验证时间
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+          errors.push(`"${schedule.title}": 时间格式无效`);
+          continue;
+        }
+
+        if (endTime <= startTime) {
+          errors.push(`"${schedule.title}": 结束时间必须晚于开始时间`);
+          continue;
+        }
+
+        await prisma.schedule.create({
+          data: {
+            title: schedule.title,
+            description: schedule.description || '',
+            startTime,
+            endTime,
+            priority: schedule.priority,
+            location: schedule.location || '',
+            userId,
+            status: 'pending',
+            isAllDay: false,
+          },
+        });
+        created++;
+      } catch (error: any) {
+        errors.push(`"${schedule.title}": ${error.message || '创建失败'}`);
+      }
+    }
+
+    return {
+      success: created > 0,
+      created,
+      errors,
+    };
   }
 
   async optimizeSchedule(userId: string, startDate: Date, endDate: Date) {

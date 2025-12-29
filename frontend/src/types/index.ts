@@ -170,6 +170,28 @@ export interface AIPlanningResult {
   aiPowered?: boolean;
 }
 
+// 智能科学规划相关类型
+export interface GeneratedScheduleItem {
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  priority: SchedulePriority;
+  location?: string;
+}
+
+export interface GeneratePlanResult {
+  success: boolean;
+  schedules?: GeneratedScheduleItem[];
+  summary?: string;
+  error?: string;
+}
+
+export interface SavePlanResult {
+  created: number;
+  errors: string[];
+}
+
 export interface ScheduleOptimization {
   optimizations: Array<{
     scheduleId: string;

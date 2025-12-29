@@ -9,6 +9,9 @@ import type {
   ScheduleStats,
   AISuggestion,
   SaveAISuggestionData,
+  GeneratedScheduleItem,
+  GeneratePlanResult,
+  SavePlanResult,
 } from '../types';
 
 // 扩展CreateScheduleData以支持AI建议
@@ -94,6 +97,36 @@ export const scheduleService = {
       `/schedules/${scheduleId}/ai-suggestions`,
       data
     );
+    return response.data.data;
+  },
+
+  // 智能科学规划方法
+  async generatePlan(description: string): Promise<GeneratePlanResult> {
+    const response = await api.post<{
+      success: boolean;
+      data?: { schedules: GeneratedScheduleItem[]; summary: string };
+      error?: { code: string; message: string };
+    }>('/schedules/generate-plan', { description });
+    
+    if (response.data.success && response.data.data) {
+      return {
+        success: true,
+        schedules: response.data.data.schedules,
+        summary: response.data.data.summary,
+      };
+    } else {
+      return {
+        success: false,
+        error: response.data.error?.message || '生成失败',
+      };
+    }
+  },
+
+  async savePlan(schedules: GeneratedScheduleItem[]): Promise<SavePlanResult> {
+    const response = await api.post<{
+      success: boolean;
+      data: { created: number; errors: string[] };
+    }>('/schedules/save-plan', { schedules });
     return response.data.data;
   },
 };

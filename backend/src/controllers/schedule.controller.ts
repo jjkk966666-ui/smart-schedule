@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import scheduleService from '../services/schedule.service';
+import aiService from '../services/ai.service';
 
 export class ScheduleController {
   async createSchedule(req: AuthRequest, res: Response, next: NextFunction) {
@@ -173,6 +174,68 @@ export class ScheduleController {
       return res.status(201).json({
         success: true,
         data: suggestion,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  // 智能科学规划 - 根据描述生成日程
+  async generatePlan(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { description } = req.body;
+      
+      if (!description || typeof description !== 'string' || description.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '请输入日程描述',
+          },
+        });
+      }
+
+      const result = await aiService.generateSchedulePlan(req.user!.userId, description.trim());
+      
+      return res.json({
+        success: result.success,
+        data: result.success ? {
+          schedules: result.schedules,
+          summary: result.summary,
+        } : undefined,
+        error: result.success ? undefined : {
+          code: 'AI_ERROR',
+          message: result.error,
+        },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  // 批量保存生成的日程
+  async savePlan(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { schedules } = req.body;
+      
+      if (!schedules || !Array.isArray(schedules) || schedules.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '请提供要保存的日程列表',
+          },
+        });
+      }
+
+      const result = await aiService.batchCreateSchedules(req.user!.userId, schedules);
+      
+      return res.status(result.success ? 201 : 400).json({
+        success: result.success,
+        data: {
+          created: result.created,
+          errors: result.errors,
+        },
       });
     } catch (error) {
       return next(error);

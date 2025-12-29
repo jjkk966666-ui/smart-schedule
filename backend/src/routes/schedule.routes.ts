@@ -21,4 +21,8 @@ router.delete('/:id', scheduleController.deleteSchedule);
 router.get('/:id/ai-suggestions', scheduleController.getAISuggestions);
 router.post('/:id/ai-suggestions', scheduleController.saveAISuggestion);
 
+// 智能科学规划路由
+router.post('/generate-plan', scheduleController.generatePlan);
+router.post('/save-plan', scheduleController.savePlan);
+
 export default router;
