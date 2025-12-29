@@ -810,9 +810,29 @@ ${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2
       }
     } catch (error: any) {
       console.error('AI规划生成失败:', error);
+      
+      // 处理常见错误类型
+      let errorMessage = 'AI规划失败';
+      
+      if (error.status === 429 || error.message?.includes('429')) {
+        errorMessage = 'AI请求过于频繁，请稍后再试（建议等待1-2分钟）';
+      } else if (error.status === 401 || error.message?.includes('401')) {
+        errorMessage = 'AI API密钥无效，请检查配置';
+      } else if (error.status === 403 || error.message?.includes('403')) {
+        errorMessage = 'AI API访问被拒绝，请检查API权限';
+      } else if (error.status === 500 || error.message?.includes('500')) {
+        errorMessage = 'AI服务暂时不可用，请稍后再试';
+      } else if (error.message?.includes('ECONNREFUSED') || error.message?.includes('network')) {
+        errorMessage = '无法连接到AI服务，请检查网络或API地址';
+      } else if (error.message) {
+        // 过滤掉HTML标签，只保留文本
+        const cleanMessage = error.message.replace(/<[^>]*>/g, '').trim();
+        errorMessage = cleanMessage.length > 100 ? cleanMessage.substring(0, 100) + '...' : cleanMessage;
+      }
+      
       return {
         success: false,
-        error: `AI规划失败: ${error.message || '未知错误'}`,
+        error: errorMessage,
       };
     }
   }
