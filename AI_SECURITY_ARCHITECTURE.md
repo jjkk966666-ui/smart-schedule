@@ -51,8 +51,9 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 # 可选：使用自定义API地址
 # OPENAI_API_BASE_URL=https://api.openai.com/v1
 
-# 可选：指定模型
-# OPENAI_MODEL=gpt-4-turbo-preview
+# 可选：自定义AI模型名称
+# OPENAI_MODEL_NAME=gpt-4-turbo-preview
+# 其他可选模型：gpt-3.5-turbo, gpt-4, gpt-4o 等
 ```
 
 ### 环境变量说明
@@ -61,7 +62,7 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 |--------|---------|------|--------|
 | `OPENAI_API_KEY` | ✅ 必需 | OpenAI API密钥 | 无 |
 | `OPENAI_API_BASE_URL` | ⭕ 可选 | API基础URL | `https://api.openai.com/v1` |
-| `OPENAI_MODEL` | ⭕ 可选 | AI模型名称 | `gpt-4-turbo-preview` |
+| `OPENAI_MODEL_NAME` | ⭕ 可选 | AI模型名称 | `gpt-4-turbo-preview` |
 
 ## 架构示意图
 

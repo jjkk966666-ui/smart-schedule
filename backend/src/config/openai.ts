@@ -8,7 +8,7 @@ export const openai = new OpenAI({
 });
 
 export const openaiConfig = {
-  model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+  model: process.env.OPENAI_MODEL_NAME || 'gpt-4-turbo-preview',
   temperature: 0.7,
   maxTokens: 2000,
 };
