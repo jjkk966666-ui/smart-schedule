@@ -59,9 +59,6 @@ export class AuthService {
         email: user.email,
         name: user.name,
         avatarUrl: user.avatarUrl,
-        aiApiKey: user.aiApiKey,
-        aiApiBaseUrl: user.aiApiBaseUrl,
-        aiModel: user.aiModel,
       },
       accessToken,
       refreshToken,
@@ -105,9 +102,6 @@ export class AuthService {
         email: user.email,
         name: user.name,
         avatarUrl: user.avatarUrl,
-        aiApiKey: user.aiApiKey,
-        aiApiBaseUrl: user.aiApiBaseUrl,
-        aiModel: user.aiModel,
       },
       accessToken,
       refreshToken,
@@ -124,46 +118,21 @@ export class AuthService {
   }
 
   async getCurrentUser(userId: string) {
-    const user = (await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         email: true,
         name: true,
         avatarUrl: true,
-        aiApiKey: true,
-        aiApiBaseUrl: true,
-        aiModel: true,
         createdAt: true,
         updatedAt: true,
-      } as any,
-    })) as UserWithAIConfig | null;
+      },
+    });
 
     if (!user) {
       throw new AppError(404, 'USER_NOT_FOUND', 'User not found');
     }
-
-    return user;
-  }
-
-  async updateAIConfig(userId: string, config: UpdateUserAIConfigInput) {
-    const user = (await prisma.user.update({
-      where: { id: userId },
-      data: {
-        aiApiKey: config.aiApiKey,
-        aiApiBaseUrl: config.aiApiBaseUrl,
-        aiModel: config.aiModel,
-      } as any,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatarUrl: true,
-        aiApiKey: true,
-        aiApiBaseUrl: true,
-        aiModel: true,
-      } as any,
-    })) as unknown as UserWithAIConfig;
 
     return user;
   }

@@ -71,24 +71,6 @@ export class AIController {
       return next(error);
     }
   }
-
-  // 检查AI配置状态
-  async checkAIStatus(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const hasConfig = await aiService.hasAIConfig(req.user!.userId);
-      res.json({
-        success: true,
-        data: {
-          hasAIConfig: hasConfig,
-          message: hasConfig
-            ? 'AI已配置，可以使用智能分析功能'
-            : '请先配置AI API密钥才能使用智能分析功能',
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
 }
 
 export default new AIController();

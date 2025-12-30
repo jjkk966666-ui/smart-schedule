@@ -232,45 +232,23 @@ export class AIService {
     return text;
   }
 
-  // 获取用户的OpenAI客户端
-  private async getOpenAIClient(userId: string): Promise<OpenAI | null> {
-    const user = (await prisma.user.findUnique({
-      where: { id: userId },
-      // @ts-ignore - Prisma 客户端类型需要重新生成 (运行 npx prisma generate)
-      select: { aiApiKey: true, aiApiBaseUrl: true },
-    })) as UserWithAIConfig | null;
-
-    // 如果用户配置了自己的API密钥，使用用户的配置
-    if (user?.aiApiKey) {
-      return new OpenAI({
-        apiKey: user.aiApiKey,
-        baseURL: user.aiApiBaseUrl || undefined,
-      });
-    }
-
-    // 否则使用系统默认配置
+  // 获取OpenAI客户端（仅使用系统级配置）
+  private getOpenAIClient(): OpenAI | null {
+    // 使用系统默认配置
     if (process.env.OPENAI_API_KEY) {
       return defaultOpenai;
     }
-
     return null;
   }
 
-  // 获取用户的AI模型配置
-  private async getAIModel(userId: string): Promise<string> {
-    const user = (await prisma.user.findUnique({
-      where: { id: userId },
-      // @ts-ignore - Prisma 客户端类型需要重新生成 (运行 npx prisma generate)
-      select: { aiModel: true },
-    })) as UserWithAIConfig | null;
-
-    return user?.aiModel || openaiConfig.model;
+  // 获取AI模型配置（仅使用系统级配置）
+  private getAIModel(): string {
+    return openaiConfig.model;
   }
 
-  // 检查用户是否配置了AI
-  async hasAIConfig(userId: string): Promise<boolean> {
-    const client = await this.getOpenAIClient(userId);
-    return client !== null;
+  // 检查系统是否配置了AI
+  async hasAIConfig(): Promise<boolean> {
+    return process.env.OPENAI_API_KEY !== undefined;
   }
 
   async analyzeConflicts(userId: string) {
@@ -312,9 +290,9 @@ export class AIService {
     // 尝试使用AI增强分析
     if (conflicts.length > 0) {
       try {
-        const openaiClient = await this.getOpenAIClient(userId);
+        const openaiClient = this.getOpenAIClient();
         if (openaiClient) {
-          const model = await this.getAIModel(userId);
+          const model = this.getAIModel();
           const prompt = `分析以下日程冲突并提供建议:\n${JSON.stringify(conflicts, null, 2)}`;
           
           const completion = await openaiClient.chat.completions.create({
@@ -361,9 +339,9 @@ export class AIService {
 
     // 尝试使用AI增强推荐
     try {
-      const openaiClient = await this.getOpenAIClient(userId);
+      const openaiClient = this.getOpenAIClient();
       if (openaiClient) {
-        const model = await this.getAIModel(userId);
+        const model = this.getAIModel();
         
         // 准备日程数据给AI分析
         const scheduleData = schedules.map(s => ({
@@ -530,15 +508,15 @@ ${JSON.stringify(basicSlots.slice(0, 10), null, 2)}
       orderBy: { startTime: 'asc' },
     });
 
-    const openaiClient = await this.getOpenAIClient(userId);
+    const openaiClient = this.getOpenAIClient();
     if (!openaiClient) {
       return {
         success: false,
-        error: '请先配置AI API密钥才能使用智能分析功能',
+        error: 'AI服务未配置，请联系管理员',
       };
     }
 
-    const model = await this.getAIModel(userId);
+    const model = this.getAIModel();
     
     const scheduleData = schedules.map(s => ({
       title: s.title,
@@ -651,15 +629,15 @@ ${JSON.stringify(scheduleData, null, 2)}
   async generateSchedulePlan(userId: string, description: string): Promise<GeneratePlanResult> {
     const now = new Date();
     
-    const openaiClient = await this.getOpenAIClient(userId);
+    const openaiClient = this.getOpenAIClient();
     if (!openaiClient) {
       return {
         success: false,
-        error: '请先配置AI API密钥才能使用智能规划功能',
+        error: 'AI服务未配置，请联系管理员',
       };
     }
 
-    const model = await this.getAIModel(userId);
+    const model = this.getAIModel();
     
     // 获取用户现有日程以避免冲突
     const endOfWeek = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 未来两周

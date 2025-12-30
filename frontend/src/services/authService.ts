@@ -1,5 +1,5 @@
 import api from './api';
-import type { LoginCredentials, RegisterData, AuthResponse, User, AIConfig } from '../types';
+import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types';
 
 export const authService = {
   async register(data: RegisterData): Promise<AuthResponse> {
@@ -38,11 +38,6 @@ export const authService = {
 
   async getCurrentUser(): Promise<User> {
     const response = await api.get<{ success: boolean; data: User }>('/auth/me');
-    return response.data.data;
-  },
-
-  async updateAIConfig(config: AIConfig): Promise<User> {
-    const response = await api.put<{ success: boolean; data: User }>('/auth/ai-config', config);
     return response.data.data;
   },
 

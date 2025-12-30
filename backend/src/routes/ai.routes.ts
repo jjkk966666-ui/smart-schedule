@@ -10,6 +10,5 @@ router.post('/analyze-conflicts', aiController.analyzeConflicts);
 router.post('/suggest-time', aiController.suggestTime);
 router.post('/optimize-schedule', aiController.optimizeSchedule);
 router.post('/analyze-planning', aiController.analyzePlanning);
-router.get('/status', aiController.checkAIStatus);
 
 export default router;

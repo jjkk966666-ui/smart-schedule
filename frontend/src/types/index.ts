@@ -4,17 +4,8 @@ export interface User {
   email: string;
   name: string;
   avatarUrl?: string;
-  aiApiKey?: string;
-  aiApiBaseUrl?: string;
-  aiModel?: string;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface AIConfig {
-  aiApiKey?: string;
-  aiApiBaseUrl?: string;
-  aiModel?: string;
 }
 
 export interface AuthResponse {
@@ -146,11 +137,6 @@ export interface TimeRecommendation {
   generalAdvice?: string;
   productivityTips?: string[];
   aiPowered?: boolean;
-}
-
-export interface AIStatus {
-  hasAIConfig: boolean;
-  message: string;
 }
 
 export interface AIPlanningResult {

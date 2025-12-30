@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { authService } from './services/authService';
 import { scheduleService } from './services/scheduleService';
 import { aiService } from './services/aiService';
-import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIConfig, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem } from './types';
+import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem } from './types';
 import './App.css';
 
 function App() {
@@ -16,15 +16,6 @@ function App() {
   const [stats, setStats] = useState<ScheduleStats | null>(null);
   const [recommendations, setRecommendations] = useState<TimeRecommendation | null>(null);
   const [showRecommendations, setShowRecommendations] = useState(false);
-  const [showAIConfig, setShowAIConfig] = useState(false);
-  const [aiConfigForm, setAiConfigForm] = useState<AIConfig>({
-    aiApiKey: '',
-    aiApiBaseUrl: '',
-    aiModel: '',
-  });
-  const [configSaving, setConfigSaving] = useState(false);
-  const [configSuccess, setConfigSuccess] = useState(false);
-  const [hasAIConfig, setHasAIConfig] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showAIPlanning, setShowAIPlanning] = useState(false);
   const [planningResult, setPlanningResult] = useState<AIPlanningResult | null>(null);
@@ -123,12 +114,6 @@ function App() {
       const userData = await authService.getCurrentUser();
       setUser(userData);
       setIsAuthenticated(true);
-      // 加载用户的AI配置
-      setAiConfigForm({
-        aiApiKey: userData.aiApiKey || '',
-        aiApiBaseUrl: userData.aiApiBaseUrl || '',
-        aiModel: userData.aiModel || '',
-      });
     } catch (error) {
       console.error('加载用户失败:', error);
     }
@@ -190,23 +175,6 @@ function App() {
       setConflicts([]);
     }
   };
-
-  // 检查AI配置状态
-  const checkAIStatus = async () => {
-    try {
-      const status = await aiService.getAIStatus();
-      setHasAIConfig(status.hasAIConfig);
-    } catch (error) {
-      console.error('检查AI状态失败:', error);
-      setHasAIConfig(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      checkAIStatus();
-    }
-  }, [isAuthenticated, user]);
 
   const loadRecommendations = async () => {
     try {
@@ -300,25 +268,6 @@ function App() {
     setIsAuthenticated(false);
     setUser(null);
     setSchedules([]);
-  };
-
-  const handleSaveAIConfig = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setConfigSaving(true);
-    setConfigSuccess(false);
-    try {
-      const updatedUser = await authService.updateAIConfig(aiConfigForm);
-      setUser(updatedUser);
-      setConfigSuccess(true);
-      setTimeout(() => {
-        setShowAIConfig(false);
-        setConfigSuccess(false);
-      }, 2000);
-    } catch (error: any) {
-      alert(error.response?.data?.error?.message || '保存失败');
-    } finally {
-      setConfigSaving(false);
-    }
   };
 
   const handleAddSchedule = async (e: React.FormEvent) => {
@@ -747,77 +696,9 @@ function App() {
             📜 规划历史 {historyTotal > 0 && `(${historyTotal})`}
           </button>
           <span>欢迎, {user?.name}</span>
-          <button className="btn-settings" onClick={() => setShowAIConfig(true)}>
-            ⚙️ AI配置
-          </button>
           <button onClick={handleLogout}>退出</button>
         </div>
       </header>
-
-      {showAIConfig && (
-        <div className="modal-overlay" onClick={() => setShowAIConfig(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>🤖 AI 配置</h2>
-              <button className="modal-close" onClick={() => setShowAIConfig(false)}>
-                ×
-              </button>
-            </div>
-            {configSuccess && (
-              <div className="success-message">
-                ✅ AI配置保存成功！
-              </div>
-            )}
-            <form onSubmit={handleSaveAIConfig} className="config-form">
-              <div className="form-group">
-                <label htmlFor="apiKey">API 密钥</label>
-                <input
-                  id="apiKey"
-                  type="password"
-                  placeholder="sk-..."
-                  value={aiConfigForm.aiApiKey}
-                  onChange={(e) => setAiConfigForm({ ...aiConfigForm, aiApiKey: e.target.value })}
-                />
-                <small>输入你的 OpenAI 兼容 API 密钥</small>
-              </div>
-              <div className="form-group">
-                <label htmlFor="apiBaseUrl">API 基础URL (可选)</label>
-                <input
-                  id="apiBaseUrl"
-                  type="url"
-                  placeholder="https://api.openai.com/v1"
-                  value={aiConfigForm.aiApiBaseUrl}
-                  onChange={(e) => setAiConfigForm({ ...aiConfigForm, aiApiBaseUrl: e.target.value })}
-                />
-                <small>留空使用默认 OpenAI API，或填写其他兼容服务的地址</small>
-              </div>
-              <div className="form-group">
-                <label htmlFor="apiModel">模型名称 (可选)</label>
-                <input
-                  id="apiModel"
-                  type="text"
-                  placeholder="gpt-4-turbo-preview"
-                  value={aiConfigForm.aiModel}
-                  onChange={(e) => setAiConfigForm({ ...aiConfigForm, aiModel: e.target.value })}
-                />
-                <small>指定使用的AI模型，留空使用默认模型</small>
-              </div>
-              <div className="form-actions">
-                <button type="submit" className="btn-save" disabled={configSaving}>
-                  {configSaving ? '保存中...' : '保存配置'}
-                </button>
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setShowAIConfig(false)}
-                >
-                  取消
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       <main className="app-main">
         {stats && (
@@ -850,16 +731,7 @@ function App() {
           <div className="header-buttons">
             <button
               className="btn-smart-plan"
-              onClick={() => {
-                if (!hasAIConfig) {
-                  const confirmed = confirm('使用智能科学规划功能需要先配置AI密钥。是否现在配置？');
-                  if (confirmed) {
-                    setShowAIConfig(true);
-                  }
-                  return;
-                }
-                setShowSmartPlanning(true);
-              }}
+              onClick={() => setShowSmartPlanning(true)}
             >
               🧪 智能科学规划
             </button>
@@ -977,17 +849,6 @@ function App() {
                     ) : (
                       <div className="error-state">
                         <p>❌ {smartPlanResult.error}</p>
-                        {!hasAIConfig && (
-                          <button
-                            className="btn-settings-small"
-                            onClick={() => {
-                              closeSmartPlanning();
-                              setShowAIConfig(true);
-                            }}
-                          >
-                            配置AI密钥
-                          </button>
-                        )}
                       </div>
                     )}
                   </div>
@@ -1008,21 +869,14 @@ function App() {
               >
                 {loadingAI ? '⏳ 分析中...' : '🤖 AI智能推荐时间'}
               </button>
-              {hasAIConfig && (
-                <button
-                  type="button"
-                  className="btn-ai-planning"
-                  onClick={handleAIPlanning}
-                  disabled={planningLoading || !scheduleForm.title}
-                >
-                  {planningLoading ? '⏳ 分析中...' : '🧠 AI智能规划'}
-                </button>
-              )}
-              {!hasAIConfig && (
-                <span className="ai-config-hint">
-                  💡 <a href="#" onClick={(e) => { e.preventDefault(); setShowAIConfig(true); }}>配置AI密钥</a> 启用更智能的分析
-                </span>
-              )}
+              <button
+                type="button"
+                className="btn-ai-planning"
+                onClick={handleAIPlanning}
+                disabled={planningLoading || !scheduleForm.title}
+              >
+                {planningLoading ? '⏳ 分析中...' : '🧠 AI智能规划'}
+              </button>
             </div>
 
             {showRecommendations && (
@@ -1165,12 +1019,6 @@ function App() {
                   ) : (
                     <div className="error-state">
                       <p>❌ {planningResult.error}</p>
-                      <button
-                        className="btn-settings-small"
-                        onClick={() => setShowAIConfig(true)}
-                      >
-                        配置AI密钥
-                      </button>
                     </div>
                   )
                 ) : null}

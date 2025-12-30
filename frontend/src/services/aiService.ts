@@ -1,5 +1,5 @@
 import api from './api';
-import type { ConflictAnalysis, TimeRecommendation, ScheduleOptimization, AIStatus, AIPlanningResult } from '../types';
+import type { ConflictAnalysis, TimeRecommendation, ScheduleOptimization, AIPlanningResult } from '../types';
 
 export const aiService = {
   async analyzeConflicts(): Promise<ConflictAnalysis> {
@@ -21,14 +21,6 @@ export const aiService = {
     const response = await api.post<{ success: boolean; data: ScheduleOptimization }>(
       '/ai/optimize-schedule',
       { startDate, endDate }
-    );
-    return response.data.data;
-  },
-
-  // 获取AI配置状态
-  async getAIStatus(): Promise<AIStatus> {
-    const response = await api.get<{ success: boolean; data: AIStatus }>(
-      '/ai/status'
     );
     return response.data.data;
   },

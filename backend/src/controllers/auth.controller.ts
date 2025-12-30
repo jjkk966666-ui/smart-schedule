@@ -51,19 +51,6 @@ export class AuthController {
       next(error);
     }
   }
-
-  async updateAIConfig(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const user = await authService.updateAIConfig(req.user!.userId, req.body);
-      res.json({
-        success: true,
-        data: user,
-        message: 'AI configuration updated successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
 }
 
 export default new AuthController();

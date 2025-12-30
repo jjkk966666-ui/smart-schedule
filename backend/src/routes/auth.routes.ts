@@ -10,6 +10,5 @@ router.post('/register', validate(registerSchema), authController.register);
 router.post('/login', validate(loginSchema), authController.login);
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.getCurrentUser);
-router.put('/ai-config', authenticate, authController.updateAIConfig);
 
 export default router;
