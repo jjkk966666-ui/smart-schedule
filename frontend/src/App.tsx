@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { authService } from './services/authService';
 import { scheduleService } from './services/scheduleService';
 import { aiService } from './services/aiService';
-import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem } from './types';
+import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem, AIUsageInfo } from './types';
 import './App.css';
 
 function App() {
@@ -55,6 +55,16 @@ function App() {
   const [planningHistory, setPlanningHistory] = useState<PlanningHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyTotal, setHistoryTotal] = useState(0);
+
+  // VIP兑换相关
+  const [showVipModal, setShowVipModal] = useState(false);
+  const [vipCode, setVipCode] = useState('');
+  const [vipLoading, setVipLoading] = useState(false);
+  const [vipError, setVipError] = useState('');
+  const [vipSuccess, setVipSuccess] = useState('');
+
+  // AI使用情况
+  const [aiUsage, setAiUsage] = useState<AIUsageInfo | null>(null);
 
   // 登录/注册表单
   const [formData, setFormData] = useState({
@@ -462,6 +472,11 @@ function App() {
       const result = await scheduleService.generatePlan(smartPlanDescription);
       setSmartPlanResult(result);
       
+      // 更新使用情况
+      if (result.usage) {
+        setAiUsage(result.usage);
+      }
+      
       // 默认选中所有生成的日程
       if (result.success && result.schedules) {
         setSelectedPlanItems(new Set(result.schedules.map((_, i) => i)));
@@ -557,6 +572,42 @@ function App() {
       urgent: '#f44336',
     };
     return colors[priority as keyof typeof colors] || '#2196f3';
+  };
+
+  // VIP通行证兑换
+  const handleVipRedeem = async () => {
+    if (!vipCode.trim()) {
+      setVipError('请输入通行证码');
+      return;
+    }
+
+    setVipLoading(true);
+    setVipError('');
+    setVipSuccess('');
+
+    try {
+      const result = await authService.redeemVipPassport(vipCode.trim());
+      setVipSuccess(result.message);
+      setVipCode('');
+      // 刷新用户信息
+      await loadUser();
+      // 3秒后关闭弹窗
+      setTimeout(() => {
+        setShowVipModal(false);
+        setVipSuccess('');
+      }, 3000);
+    } catch (error: any) {
+      setVipError(error.response?.data?.error?.message || '兑换失败，请检查通行证码');
+    } finally {
+      setVipLoading(false);
+    }
+  };
+
+  const closeVipModal = () => {
+    setShowVipModal(false);
+    setVipCode('');
+    setVipError('');
+    setVipSuccess('');
   };
 
   if (!isAuthenticated) {
@@ -695,10 +746,81 @@ function App() {
           >
             📜 规划历史 {historyTotal > 0 && `(${historyTotal})`}
           </button>
+          
+          {/* VIP状态显示 */}
+          <div className="vip-status-wrapper">
+            {user?.isVip ? (
+              <span className="vip-badge active" title={`VIP剩余 ${user.vipRemainingHours} 小时`}>
+                👑 VIP ({user.vipRemainingHours}h)
+              </span>
+            ) : (
+              <button className="btn-vip" onClick={() => setShowVipModal(true)}>
+                👑 兑换VIP
+              </button>
+            )}
+          </div>
+          
           <span>欢迎, {user?.name}</span>
           <button onClick={handleLogout}>退出</button>
         </div>
       </header>
+
+      {/* VIP兑换弹窗 */}
+      {showVipModal && (
+        <div className="modal-overlay" onClick={closeVipModal}>
+          <div className="modal-content vip-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>👑 VIP通行证兑换</h2>
+              <button className="modal-close" onClick={closeVipModal}>×</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="vip-info">
+                <p>🎯 VIP特权：</p>
+                <ul>
+                  <li>✨ 使用更强大的AI模型进行规划</li>
+                  <li>📈 每日智能规划次数提升至 <strong>10次</strong>（普通用户5次）</li>
+                  <li>⏰ 有效期：24小时</li>
+                </ul>
+              </div>
+              
+              <div className="vip-form">
+                <input
+                  type="text"
+                  placeholder="请输入12位通行证码"
+                  value={vipCode}
+                  onChange={(e) => setVipCode(e.target.value.toUpperCase())}
+                  maxLength={12}
+                  disabled={vipLoading}
+                />
+                <button
+                  className="btn-redeem"
+                  onClick={handleVipRedeem}
+                  disabled={vipLoading || !vipCode.trim()}
+                >
+                  {vipLoading ? '⏳ 兑换中...' : '🎁 兑换'}
+                </button>
+              </div>
+              
+              {vipError && (
+                <div className="vip-error">❌ {vipError}</div>
+              )}
+              
+              {vipSuccess && (
+                <div className="vip-success">✅ {vipSuccess}</div>
+              )}
+              
+              {user?.isVip && (
+                <div className="vip-current-status">
+                  <p>🎉 您当前已是VIP用户</p>
+                  <p>⏰ 剩余时间：{user.vipRemainingHours} 小时</p>
+                  <p className="hint">兑换新通行证将延长24小时有效期</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="app-main">
         {stats && (
@@ -768,6 +890,18 @@ function App() {
                   >
                     {smartPlanLoading ? '⏳ AI正在规划...' : '🚀 生成日程计划'}
                   </button>
+                  
+                  {/* 使用情况显示 */}
+                  {aiUsage && (
+                    <div className={`usage-info ${aiUsage.isLimitReached ? 'limit-reached' : ''}`}>
+                      <span>今日使用: {aiUsage.usageCount}/{aiUsage.limit}</span>
+                      {aiUsage.isLimitReached ? (
+                        <span className="limit-warning">已达上限 {!user?.isVip && <button className="btn-upgrade-vip" onClick={() => { closeSmartPlanning(); setShowVipModal(true); }}>升级VIP</button>}</span>
+                      ) : (
+                        <span>剩余: {aiUsage.remaining}次</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {smartPlanLoading && (

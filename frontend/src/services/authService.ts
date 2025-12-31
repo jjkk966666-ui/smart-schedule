@@ -1,5 +1,5 @@
 import api from './api';
-import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types';
+import type { LoginCredentials, RegisterData, AuthResponse, User, VipRedeemResult } from '../types';
 
 export const authService = {
   async register(data: RegisterData): Promise<AuthResponse> {
@@ -43,5 +43,14 @@ export const authService = {
 
   isAuthenticated(): boolean {
     return !!localStorage.getItem('accessToken');
+  },
+
+  // VIP通行证兑换
+  async redeemVipPassport(code: string): Promise<VipRedeemResult> {
+    const response = await api.post<{ success: boolean; data: VipRedeemResult }>(
+      '/auth/redeem',
+      { code }
+    );
+    return response.data.data;
   },
 };

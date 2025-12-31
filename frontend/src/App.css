@@ -1989,3 +1989,277 @@ body {
     font-size: 13px;
   }
 }
+
+/* VIP相关样式 */
+.vip-status-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.vip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vip-badge.active {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+  color: #8b4513;
+  box-shadow: 0 2px 10px rgba(255, 215, 0, 0.4);
+  animation: vip-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes vip-glow {
+  from {
+    box-shadow: 0 2px 10px rgba(255, 215, 0, 0.4);
+  }
+  to {
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.6);
+  }
+}
+
+.btn-vip {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+  color: #8b4513;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.btn-vip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.5);
+}
+
+/* VIP弹窗样式 */
+.vip-modal {
+  max-width: 450px;
+}
+
+.vip-modal .modal-header {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+  margin: -30px -30px 0 -30px;
+  padding: 24px 30px;
+  border-radius: 16px 16px 0 0;
+}
+
+.vip-modal .modal-header h2 {
+  color: #8b4513;
+}
+
+.vip-modal .modal-close {
+  color: #8b4513;
+}
+
+.vip-modal .modal-close:hover {
+  background: rgba(139, 69, 19, 0.1);
+}
+
+.vip-modal .modal-body {
+  padding-top: 24px;
+}
+
+.vip-info {
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3cc 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid #ffd700;
+}
+
+.vip-info p {
+  font-weight: 600;
+  color: #8b4513;
+  margin: 0 0 12px 0;
+  font-size: 15px;
+}
+
+.vip-info ul {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.vip-info li {
+  color: #a0522d;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.vip-info li strong {
+  color: #8b4513;
+}
+
+.vip-form {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.vip-form input {
+  flex: 1;
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: 'Consolas', monospace;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: border-color 0.3s;
+}
+
+.vip-form input:focus {
+  outline: none;
+  border-color: #ffd700;
+}
+
+.vip-form input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.btn-redeem {
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-redeem:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.btn-redeem:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vip-error {
+  background: #ffebee;
+  color: #c62828;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 12px;
+  font-size: 14px;
+  border: 1px solid #ef5350;
+}
+
+.vip-success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 12px;
+  font-size: 14px;
+  border: 1px solid #4caf50;
+  animation: success-pulse 0.5s ease;
+}
+
+@keyframes success-pulse {
+  0% { transform: scale(0.95); opacity: 0; }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.vip-current-status {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+  text-align: center;
+  border: 1px solid #4caf50;
+}
+
+.vip-current-status p {
+  margin: 6px 0;
+  color: #2e7d32;
+}
+
+.vip-current-status .hint {
+  font-size: 13px;
+  color: #66bb6a;
+}
+
+/* AI使用情况显示 */
+.usage-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-radius: 10px;
+  margin-top: 16px;
+  font-size: 14px;
+  color: #1976d2;
+}
+
+.usage-info.limit-reached {
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  color: #c62828;
+}
+
+.usage-info .limit-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-upgrade-vip {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+  color: #8b4513;
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-upgrade-vip:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+}
+
+/* 响应式 - VIP样式 */
+@media (max-width: 768px) {
+  .vip-status-wrapper {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  
+  .vip-form {
+    flex-direction: column;
+  }
+  
+  .vip-form input {
+    text-align: center;
+  }
+  
+  .btn-redeem {
+    width: 100%;
+  }
+  
+  .usage-info {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

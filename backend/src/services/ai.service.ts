@@ -1,13 +1,26 @@
 import OpenAI from 'openai';
-import { openai as defaultOpenai, openaiConfig } from '../config/openai';
+import {
+  openai as defaultOpenai,
+  openaiConfig,
+  premiumOpenai,
+  premiumConfig,
+  usageLimits
+} from '../config/openai';
 import prisma from '../config/database';
 
-// 临时类型定义：扩展User类型以包含AI配置字段
-// 注意：运行 `npx prisma generate` 后可以移除此接口
-interface UserWithAIConfig {
-  aiApiKey: string | null;
-  aiApiBaseUrl: string | null;
-  aiModel?: string | null;
+// 用户VIP状态接口
+interface UserVipStatus {
+  isVip: boolean;
+  vipExpiresAt: Date | null;
+  remainingHours: number | null;
+}
+
+// 用户每日使用情况接口
+interface UserDailyUsage {
+  usageCount: number;
+  limit: number;
+  remaining: number;
+  isLimitReached: boolean;
 }
 
 interface AITimeSlot {
@@ -232,7 +245,117 @@ export class AIService {
     return text;
   }
 
-  // 获取OpenAI客户端（仅使用系统级配置）
+  // 检查用户是否是VIP
+  async isUserVip(userId: string): Promise<UserVipStatus> {
+    // 使用类型断言绕过Prisma类型尚未生成的问题
+    const user = await (prisma.user as any).findUnique({
+      where: { id: userId },
+      select: { vipExpiresAt: true },
+    }) as { vipExpiresAt: Date | null } | null;
+
+    const now = new Date();
+    const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
+    const isVip = vipExpiresAt ? vipExpiresAt > now : false;
+    const remainingHours = isVip && vipExpiresAt
+      ? Math.ceil((vipExpiresAt.getTime() - now.getTime()) / (1000 * 60 * 60))
+      : null;
+
+    return {
+      isVip,
+      vipExpiresAt,
+      remainingHours,
+    };
+  }
+
+  // 获取用户今日使用情况
+  async getUserDailyUsage(userId: string): Promise<UserDailyUsage> {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const vipStatus = await this.isUserVip(userId);
+    const limit = vipStatus.isVip ? usageLimits.vip : usageLimits.normal;
+
+    // 使用类型断言绕过Prisma类型尚未生成的问题
+    const usageRecord = await (prisma as any).aIUsageRecord.findUnique({
+      where: {
+        userId_usageDate: {
+          userId,
+          usageDate: today,
+        },
+      },
+    }) as { usageCount: number } | null;
+
+    const usageCount = usageRecord?.usageCount || 0;
+    const remaining = Math.max(0, limit - usageCount);
+
+    return {
+      usageCount,
+      limit,
+      remaining,
+      isLimitReached: remaining === 0,
+    };
+  }
+
+  // 增加用户每日使用次数
+  async incrementUsage(userId: string): Promise<UserDailyUsage> {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 使用类型断言绕过Prisma类型尚未生成的问题
+    const usageRecord = await (prisma as any).aIUsageRecord.upsert({
+      where: {
+        userId_usageDate: {
+          userId,
+          usageDate: today,
+        },
+      },
+      update: {
+        usageCount: { increment: 1 },
+      },
+      create: {
+        userId,
+        usageDate: today,
+        usageCount: 1,
+      },
+    }) as { usageCount: number };
+
+    const vipStatus = await this.isUserVip(userId);
+    const limit = vipStatus.isVip ? usageLimits.vip : usageLimits.normal;
+    const remaining = Math.max(0, limit - usageRecord.usageCount);
+
+    return {
+      usageCount: usageRecord.usageCount,
+      limit,
+      remaining,
+      isLimitReached: remaining === 0,
+    };
+  }
+
+  // 获取OpenAI客户端（根据用户VIP状态选择）
+  private async getOpenAIClientForUser(userId: string): Promise<{ client: OpenAI | null; model: string; isVip: boolean }> {
+    const vipStatus = await this.isUserVip(userId);
+    
+    if (vipStatus.isVip && premiumOpenai) {
+      // VIP用户使用Premium API
+      console.log(`[AI] 用户 ${userId} 使用VIP模型: ${premiumConfig.model}`);
+      return {
+        client: premiumOpenai,
+        model: premiumConfig.model,
+        isVip: true,
+      };
+    }
+    
+    // 普通用户或没有Premium配置时使用默认API
+    if (process.env.OPENAI_API_KEY) {
+      console.log(`[AI] 用户 ${userId} 使用普通模型: ${openaiConfig.model}`);
+      return {
+        client: defaultOpenai,
+        model: openaiConfig.model,
+        isVip: false,
+      };
+    }
+    
+    return { client: null, model: '', isVip: false };
+  }
+
+  // 获取OpenAI客户端（仅使用系统级配置）- 保留向后兼容
   private getOpenAIClient(): OpenAI | null {
     // 使用系统默认配置
     if (process.env.OPENAI_API_KEY) {
@@ -241,7 +364,7 @@ export class AIService {
     return null;
   }
 
-  // 获取AI模型配置（仅使用系统级配置）
+  // 获取AI模型配置（仅使用系统级配置）- 保留向后兼容
   private getAIModel(): string {
     return openaiConfig.model;
   }
@@ -249,6 +372,16 @@ export class AIService {
   // 检查系统是否配置了AI
   async hasAIConfig(): Promise<boolean> {
     return process.env.OPENAI_API_KEY !== undefined;
+  }
+
+  // 获取VIP状态信息（供外部调用）
+  async getVipStatus(userId: string): Promise<{ isVip: boolean; expiresAt: Date | null; remainingHours: number | null }> {
+    const status = await this.isUserVip(userId);
+    return {
+      isVip: status.isVip,
+      expiresAt: status.vipExpiresAt,
+      remainingHours: status.remainingHours,
+    };
   }
 
   async analyzeConflicts(userId: string) {
@@ -626,18 +759,30 @@ ${JSON.stringify(scheduleData, null, 2)}
   }
 
   // 智能科学规划 - 根据模糊描述生成具体日程
-  async generateSchedulePlan(userId: string, description: string): Promise<GeneratePlanResult> {
+  async generateSchedulePlan(userId: string, description: string): Promise<GeneratePlanResult & { usage?: UserDailyUsage }> {
     const now = new Date();
     
-    const openaiClient = this.getOpenAIClient();
+    // 检查每日使用限制
+    const currentUsage = await this.getUserDailyUsage(userId);
+    if (currentUsage.isLimitReached) {
+      const vipStatus = await this.isUserVip(userId);
+      return {
+        success: false,
+        error: vipStatus.isVip
+          ? `今日VIP使用次数已达上限(${currentUsage.limit}次)，请明天再试`
+          : `今日使用次数已达上限(${currentUsage.limit}次)，升级VIP可获得更多次数`,
+        usage: currentUsage,
+      };
+    }
+
+    // 获取适合用户的AI客户端
+    const { client: openaiClient, model, isVip } = await this.getOpenAIClientForUser(userId);
     if (!openaiClient) {
       return {
         success: false,
         error: 'AI服务未配置，请联系管理员',
       };
     }
-
-    const model = this.getAIModel();
     
     // 获取用户现有日程以避免冲突
     const endOfWeek = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 未来两周
@@ -781,10 +926,14 @@ ${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2
           };
         }
 
+        // 成功生成后增加使用次数
+        const updatedUsage = await this.incrementUsage(userId);
+
         return {
           success: true,
           schedules: validatedSchedules,
           summary: result.summary || `已生成 ${validatedSchedules.length} 个日程`,
+          usage: updatedUsage,
         };
       } else {
         // 尝试从响应中提取可读信息

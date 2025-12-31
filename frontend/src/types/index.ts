@@ -6,6 +6,32 @@ export interface User {
   avatarUrl?: string;
   createdAt: string;
   updatedAt: string;
+  // VIP相关字段
+  isVip?: boolean;
+  vipExpiresAt?: string;
+  vipRemainingHours?: number;
+}
+
+// VIP相关类型
+export interface VipStatus {
+  isVip: boolean;
+  vipExpiresAt: string | null;
+  remainingHours: number | null;
+}
+
+export interface VipRedeemResult {
+  success: boolean;
+  message: string;
+  vipExpiresAt?: string;
+  remainingHours?: number;
+}
+
+// AI使用情况类型
+export interface AIUsageInfo {
+  usageCount: number;
+  limit: number;
+  remaining: number;
+  isLimitReached: boolean;
 }
 
 export interface AuthResponse {
@@ -172,6 +198,8 @@ export interface GeneratePlanResult {
   schedules?: GeneratedScheduleItem[];
   summary?: string;
   error?: string;
+  // VIP用户使用情况
+  usage?: AIUsageInfo;
 }
 
 export interface SavePlanResult {

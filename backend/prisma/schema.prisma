@@ -17,10 +17,12 @@ model User {
   passwordHash  String   @map("password_hash")
   name          String
   avatarUrl     String?  @map("avatar_url")
-  // AI配置
+  // AI配置（已废弃，保留兼容）
   aiApiKey      String?  @map("ai_api_key")
   aiApiBaseUrl  String?  @map("ai_api_base_url")
   aiModel       String?  @map("ai_model")
+  // VIP相关字段
+  vipExpiresAt  DateTime? @map("vip_expires_at")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -28,6 +30,7 @@ model User {
   schedules        Schedule[]
   refreshTokens    RefreshToken[]
   planningHistory  PlanningHistory[]
+  aiUsageRecords   AIUsageRecord[]
 
   @@map("users")
 }
@@ -125,4 +128,32 @@ model PlanningHistory {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("planning_history")
+}
+
+// VIP通行证表
+model VipPassport {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  isUsed    Boolean  @default(false) @map("is_used")
+  usedBy    String?  @map("used_by")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("vip_passports")
+}
+
+// AI使用记录表（用于每日限制）
+model AIUsageRecord {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  usageDate String   @map("usage_date") // 格式：YYYY-MM-DD
+  usageCount Int     @default(0) @map("usage_count")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, usageDate])
+  @@map("ai_usage_records")
 }
