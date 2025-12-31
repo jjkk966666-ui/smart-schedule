@@ -14,6 +14,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [conflicts, setConflicts] = useState<Schedule[]>([]);
   const [stats, setStats] = useState<ScheduleStats | null>(null);
+  
+  // 日程筛选状态
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [recommendations, setRecommendations] = useState<TimeRecommendation | null>(null);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
@@ -553,6 +556,89 @@ function App() {
     }
   };
 
+  // 切换日程完成状态
+  const handleToggleComplete = async (schedule: Schedule, e: React.MouseEvent) => {
+    e.stopPropagation(); // 阻止触发编辑
+    try {
+      const newStatus = schedule.status === 'completed' ? 'pending' : 'completed';
+      await scheduleService.updateSchedule(schedule.id, {
+        id: schedule.id,
+        status: newStatus,
+      });
+      await loadSchedules();
+      await loadStats();
+    } catch (error) {
+      console.error('更新状态失败:', error);
+      alert('更新状态失败');
+    }
+  };
+
+  // 根据筛选条件过滤日程
+  const getFilteredSchedules = () => {
+    if (activeFilter === 'all') {
+      return schedules;
+    }
+    
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+    
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    switch (activeFilter) {
+      case 'today':
+        return schedules.filter(s => {
+          const startTime = new Date(s.startTime);
+          return startTime >= todayStart && startTime < todayEnd;
+        });
+      case 'thisWeek':
+        return schedules.filter(s => {
+          const startTime = new Date(s.startTime);
+          return startTime >= weekStart && startTime < weekEnd;
+        });
+      case 'pending':
+        return schedules.filter(s => s.status === 'pending' || s.status === 'in_progress');
+      case 'completed':
+        return schedules.filter(s => s.status === 'completed');
+      case 'highPriority':
+        return schedules.filter(s => s.priority === 'high' || s.priority === 'urgent');
+      default:
+        return schedules;
+    }
+  };
+
+  // 获取筛选后的日程
+  const filteredSchedules = getFilteredSchedules();
+  
+  // 将日程分为未完成和已完成两组（仅在"全部"视图时分组）
+  const getGroupedSchedules = () => {
+    if (activeFilter !== 'all') {
+      return { incomplete: filteredSchedules, completed: [] };
+    }
+    const incomplete = filteredSchedules.filter(s => s.status !== 'completed');
+    const completed = filteredSchedules.filter(s => s.status === 'completed');
+    return { incomplete, completed };
+  };
+
+  const { incomplete: incompleteSchedules, completed: completedSchedules } = getGroupedSchedules();
+
+  // 获取筛选器标签
+  const getFilterLabel = (filter: string) => {
+    const labels: Record<string, string> = {
+      all: '全部',
+      today: '今日',
+      thisWeek: '本周',
+      pending: '待完成',
+      completed: '已完成',
+      highPriority: '高优先级',
+    };
+    return labels[filter] || filter;
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleString('zh-CN', {
@@ -825,31 +911,69 @@ function App() {
       <main className="app-main">
         {stats && (
           <div className="stats-panel">
-            <div className="stat-card">
+            <div
+              className={`stat-card clickable ${activeFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('all')}
+              title="点击查看全部日程"
+            >
               <div className="stat-value">{stats.total}</div>
               <div className="stat-label">总日程</div>
             </div>
-            <div className="stat-card">
+            <div
+              className={`stat-card clickable ${activeFilter === 'today' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('today')}
+              title="点击查看今日日程"
+            >
               <div className="stat-value">{stats.today}</div>
               <div className="stat-label">今日</div>
             </div>
-            <div className="stat-card">
+            <div
+              className={`stat-card clickable ${activeFilter === 'thisWeek' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('thisWeek')}
+              title="点击查看本周日程"
+            >
               <div className="stat-value">{stats.thisWeek}</div>
               <div className="stat-label">本周</div>
             </div>
-            <div className="stat-card">
+            <div
+              className={`stat-card clickable ${activeFilter === 'pending' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('pending')}
+              title="点击查看待完成日程"
+            >
               <div className="stat-value">{stats.pending}</div>
               <div className="stat-label">待完成</div>
             </div>
-            <div className="stat-card">
+            <div
+              className={`stat-card clickable ${activeFilter === 'completed' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('completed')}
+              title="点击查看已完成日程"
+            >
+              <div className="stat-value">{stats.completed}</div>
+              <div className="stat-label">已完成</div>
+            </div>
+            <div
+              className={`stat-card clickable ${activeFilter === 'highPriority' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('highPriority')}
+              title="点击查看高优先级日程"
+            >
               <div className="stat-value">{stats.highPriority}</div>
               <div className="stat-label">高优先级</div>
             </div>
           </div>
         )}
 
+        {/* 当前筛选提示 */}
+        {activeFilter !== 'all' && (
+          <div className="filter-indicator">
+            <span>当前筛选：{getFilterLabel(activeFilter)}</span>
+            <button className="btn-clear-filter" onClick={() => setActiveFilter('all')}>
+              ✕ 清除筛选
+            </button>
+          </div>
+        )}
+
         <div className="schedule-header">
-          <h2>我的日程 ({schedules.length})</h2>
+          <h2>我的日程 ({filteredSchedules.length}{activeFilter !== 'all' ? ` / ${schedules.length}` : ''})</h2>
           <div className="header-buttons">
             <button
               className="btn-smart-plan"
@@ -1238,55 +1362,148 @@ function App() {
         )}
 
         <div className="schedule-list">
-          {schedules.length === 0 ? (
-            <p className="empty-state">还没有日程,点击上方按钮添加吧!</p>
+          {filteredSchedules.length === 0 ? (
+            <p className="empty-state">
+              {activeFilter === 'all'
+                ? '还没有日程,点击上方按钮添加吧!'
+                : `没有${getFilterLabel(activeFilter)}的日程`}
+            </p>
           ) : (
-            schedules.map((schedule) => (
-              <div key={schedule.id} className="schedule-card">
-                <div
-                  className="schedule-priority"
-                  style={{ backgroundColor: getPriorityColor(schedule.priority) }}
-                />
-                <div
-                  className="schedule-content"
-                  onClick={() => handleEditSchedule(schedule)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <h3>{schedule.title}</h3>
-                  {schedule.description && <p>{schedule.description}</p>}
-                  <div className="schedule-meta">
-                    <span>📅 {formatDate(schedule.startTime)} - {formatDate(schedule.endTime)}</span>
-                    {schedule.location && <span>📍 {schedule.location}</span>}
-                    <span className="schedule-status">{schedule.status}</span>
-                  </div>
-                  <div className="schedule-edit-hint">
-                    ✏️ 点击编辑日程
-                  </div>
+            <>
+              {/* 未完成的日程 */}
+              {incompleteSchedules.length > 0 && (
+                <div className="schedule-section">
+                  {activeFilter === 'all' && completedSchedules.length > 0 && (
+                    <div className="section-header">
+                      <h3>📋 进行中 ({incompleteSchedules.length})</h3>
+                    </div>
+                  )}
+                  {incompleteSchedules.map((schedule) => (
+                    <div key={schedule.id} className={`schedule-card ${schedule.status === 'completed' ? 'completed' : ''}`}>
+                      {/* 完成勾选框 */}
+                      <div
+                        className="schedule-checkbox"
+                        onClick={(e) => handleToggleComplete(schedule, e)}
+                        title={schedule.status === 'completed' ? '标记为未完成' : '标记为已完成'}
+                      >
+                        <div className={`checkbox ${schedule.status === 'completed' ? 'checked' : ''}`}>
+                          {schedule.status === 'completed' ? '✓' : ''}
+                        </div>
+                      </div>
+                      <div
+                        className="schedule-priority"
+                        style={{ backgroundColor: getPriorityColor(schedule.priority) }}
+                      />
+                      <div
+                        className="schedule-content"
+                        onClick={() => handleEditSchedule(schedule)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <h3>{schedule.title}</h3>
+                        {schedule.description && <p>{schedule.description}</p>}
+                        <div className="schedule-meta">
+                          <span>📅 {formatDate(schedule.startTime)} - {formatDate(schedule.endTime)}</span>
+                          {schedule.location && <span>📍 {schedule.location}</span>}
+                          <span className={`schedule-status status-${schedule.status}`}>
+                            {schedule.status === 'pending' ? '待开始' :
+                             schedule.status === 'in_progress' ? '进行中' :
+                             schedule.status === 'completed' ? '已完成' : '已取消'}
+                          </span>
+                        </div>
+                        <div className="schedule-edit-hint">
+                          ✏️ 点击编辑日程
+                        </div>
+                      </div>
+                      <div className="schedule-actions">
+                        <button
+                          className="btn-ai-view"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewAISuggestions(schedule);
+                          }}
+                          title="查看AI建议"
+                        >
+                          🤖
+                        </button>
+                        <button
+                          className="btn-delete"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSchedule(schedule.id);
+                          }}
+                          title="删除日程"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="schedule-actions">
-                  <button
-                    className="btn-ai-view"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewAISuggestions(schedule);
-                    }}
-                    title="查看AI建议"
-                  >
-                    🤖
-                  </button>
-                  <button
-                    className="btn-delete"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteSchedule(schedule.id);
-                    }}
-                    title="删除日程"
-                  >
-                    🗑️
-                  </button>
+              )}
+
+              {/* 已完成的日程（仅在"全部"视图时显示分组） */}
+              {activeFilter === 'all' && completedSchedules.length > 0 && (
+                <div className="schedule-section completed-section">
+                  <div className="section-header">
+                    <h3>✅ 已完成 ({completedSchedules.length})</h3>
+                  </div>
+                  {completedSchedules.map((schedule) => (
+                    <div key={schedule.id} className="schedule-card completed">
+                      {/* 完成勾选框 */}
+                      <div
+                        className="schedule-checkbox"
+                        onClick={(e) => handleToggleComplete(schedule, e)}
+                        title="标记为未完成"
+                      >
+                        <div className="checkbox checked">✓</div>
+                      </div>
+                      <div
+                        className="schedule-priority"
+                        style={{ backgroundColor: getPriorityColor(schedule.priority) }}
+                      />
+                      <div
+                        className="schedule-content"
+                        onClick={() => handleEditSchedule(schedule)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <h3>{schedule.title}</h3>
+                        {schedule.description && <p>{schedule.description}</p>}
+                        <div className="schedule-meta">
+                          <span>📅 {formatDate(schedule.startTime)} - {formatDate(schedule.endTime)}</span>
+                          {schedule.location && <span>📍 {schedule.location}</span>}
+                          <span className="schedule-status status-completed">已完成</span>
+                        </div>
+                        <div className="schedule-edit-hint">
+                          ✏️ 点击编辑日程
+                        </div>
+                      </div>
+                      <div className="schedule-actions">
+                        <button
+                          className="btn-ai-view"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewAISuggestions(schedule);
+                          }}
+                          title="查看AI建议"
+                        >
+                          🤖
+                        </button>
+                        <button
+                          className="btn-delete"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSchedule(schedule.id);
+                          }}
+                          title="删除日程"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))
+              )}
+            </>
           )}
         </div>
 
