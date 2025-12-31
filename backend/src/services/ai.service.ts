@@ -60,11 +60,18 @@ export class AIService {
     let cleaned = response;
     
     console.log('=== 原始AI响应 ===');
-    console.log(response.substring(0, 500));
+    console.log(response.substring(0, 1000));
     console.log('=== 原始响应结束 ===');
     
-    // 移除 <think>...</think> 标签及其内容
+    // 移除各种思考标签及其内容
     cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+    cleaned = cleaned.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '');
+    cleaned = cleaned.replace(/<analysis>[\s\S]*?<\/analysis>/gi, '');
+    
+    // 移除可能的markdown标题和说明文字
+    cleaned = cleaned.replace(/^#+\s+.*$/gm, '');
+    cleaned = cleaned.replace(/^(好的|明白|以下是|根据|这是|我来|让我|下面是).*[:：]\s*/gm, '');
     
     // 移除代码块标记（支持多种格式，包括带语言标记的）
     // 先尝试提取代码块内的内容
@@ -86,9 +93,30 @@ export class AIService {
     let bracketCount = 0;
     let jsonStart = -1;
     let jsonEnd = -1;
+    let inString = false;
+    let escapeNext = false;
     
     for (let i = 0; i < cleaned.length; i++) {
       const char = cleaned[i];
+      
+      // 处理字符串内的字符
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+      
+      if (char === '\\' && inString) {
+        escapeNext = true;
+        continue;
+      }
+      
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      
+      if (inString) continue;
+      
       if (char === '{') {
         if (jsonStart === -1 && bracketCount === 0) jsonStart = i;
         braceCount++;
@@ -114,27 +142,78 @@ export class AIService {
       cleaned = cleaned.substring(jsonStart, jsonEnd);
     }
     
+    // 修复常见的JSON格式问题
+    // 移除尾随逗号
+    cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+    // 修复没有引号的键名（简单情况）
+    cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+    
     console.log('=== 清理后的JSON ===');
-    console.log(cleaned.substring(0, 500));
+    console.log(cleaned.substring(0, 1000));
     console.log('=== 清理后结束 ===');
     
     return cleaned.trim();
   }
 
-  // 安全解析JSON，带有更好的错误处理
+  // 安全解析JSON，带有更好的错误处理和多种尝试策略
   private safeParseJSON<T>(response: string, fallback: T): { data: T; parsed: boolean; rawResponse: string } {
+    // 策略1: 使用清理后的响应
     try {
       const cleaned = this.cleanAIResponse(response);
       const data = JSON.parse(cleaned) as T;
-      console.log('=== JSON解析成功 ===');
+      console.log('=== JSON解析成功 (策略1: 清理后解析) ===');
       console.log('解析结果:', JSON.stringify(data, null, 2).substring(0, 500));
       return { data, parsed: true, rawResponse: response };
-    } catch (error) {
-      console.log('=== JSON解析失败 ===');
-      console.log('错误:', error);
-      console.log('原始响应前500字符:', response.substring(0, 500));
-      return { data: fallback, parsed: false, rawResponse: response };
+    } catch (error1) {
+      console.log('策略1失败:', (error1 as Error).message);
     }
+
+    // 策略2: 尝试提取最深层的JSON对象
+    try {
+      const jsonMatches = response.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
+      if (jsonMatches && jsonMatches.length > 0) {
+        // 找最长的匹配（通常是最完整的JSON）
+        const longestMatch = jsonMatches.reduce((a, b) => a.length > b.length ? a : b);
+        const data = JSON.parse(longestMatch) as T;
+        console.log('=== JSON解析成功 (策略2: 提取最长JSON) ===');
+        return { data, parsed: true, rawResponse: response };
+      }
+    } catch (error2) {
+      console.log('策略2失败:', (error2 as Error).message);
+    }
+
+    // 策略3: 尝试修复常见的JSON错误后解析
+    try {
+      let fixed = this.cleanAIResponse(response);
+      // 修复单引号
+      fixed = fixed.replace(/'/g, '"');
+      // 修复未转义的换行符
+      fixed = fixed.replace(/\n/g, '\\n');
+      // 移除控制字符
+      fixed = fixed.replace(/[\x00-\x1F\x7F]/g, '');
+      const data = JSON.parse(fixed) as T;
+      console.log('=== JSON解析成功 (策略3: 修复后解析) ===');
+      return { data, parsed: true, rawResponse: response };
+    } catch (error3) {
+      console.log('策略3失败:', (error3 as Error).message);
+    }
+
+    // 策略4: 尝试提取schedules数组
+    try {
+      const schedulesMatch = response.match(/"schedules"\s*:\s*\[([\s\S]*?)\]/);
+      if (schedulesMatch) {
+        const schedulesJson = `{"schedules":[${schedulesMatch[1]}]}`;
+        const data = JSON.parse(schedulesJson) as T;
+        console.log('=== JSON解析成功 (策略4: 提取schedules) ===');
+        return { data, parsed: true, rawResponse: response };
+      }
+    } catch (error4) {
+      console.log('策略4失败:', (error4 as Error).message);
+    }
+
+    console.log('=== 所有JSON解析策略都失败 ===');
+    console.log('原始响应前1000字符:', response.substring(0, 1000));
+    return { data: fallback, parsed: false, rawResponse: response };
   }
 
   // 从JSON解析结果中提取可读分析文本
@@ -173,8 +252,10 @@ export class AIService {
   private extractReadableText(response: string): string {
     let text = response;
     
-    // 移除 <think>...</think> 标签及其内容
+    // 移除各种思考标签及其内容
     text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    text = text.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+    text = text.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '');
     
     // 尝试先解析JSON并提取有意义的内容
     try {
@@ -184,6 +265,16 @@ export class AIService {
       if (extracted && extracted.length > 20) {
         return extracted;
       }
+      
+      // 如果有summary字段，直接返回
+      if (jsonData.summary && jsonData.summary.length > 10) {
+        return jsonData.summary;
+      }
+      
+      // 如果有error字段，返回错误信息
+      if (jsonData.error) {
+        return `AI返回错误: ${jsonData.error}`;
+      }
     } catch (e) {
       // 解析失败，继续使用文本提取
     }
@@ -191,55 +282,66 @@ export class AIService {
     // 移除代码块（包括内容）
     text = text.replace(/```[\s\S]*?```/g, '');
     
-    // 不要移除整个JSON对象，而是尝试提取其中的文本值
-    // 尝试提取JSON中的文本字段
+    // 尝试提取JSON中的文本字段（使用更宽松的正则）
     const textFields = [
-      /"overallAnalysis"\s*:\s*"([^"]+)"/,
-      /"coordination"\s*:\s*"([^"]+)"/,
-      /"priorityReason"\s*:\s*"([^"]+)"/,
-      /"generalAdvice"\s*:\s*"([^"]+)"/,
-      /"reason"\s*:\s*"([^"]+)"/,
+      /"overallAnalysis"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
+      /"coordination"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
+      /"priorityReason"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
+      /"generalAdvice"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
+      /"reason"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
+      /"summary"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
+      /"description"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
+      /"title"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
     ];
     
     const extractedTexts: string[] = [];
     for (const regex of textFields) {
-      const match = response.match(regex);
-      if (match && match[1]) {
-        extractedTexts.push(match[1]);
+      const matches = response.matchAll(new RegExp(regex, 'g'));
+      for (const match of matches) {
+        if (match[1] && match[1].length > 5) {
+          // 解码转义字符
+          const decoded = match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+          if (!extractedTexts.includes(decoded)) {
+            extractedTexts.push(decoded);
+          }
+        }
       }
     }
     
     if (extractedTexts.length > 0) {
-      return extractedTexts.join('\n\n');
+      return extractedTexts.slice(0, 5).join('\n\n');
     }
     
-    // 移除JSON对象
+    // 移除JSON对象（保守方式）
     text = text.replace(/\{[\s\S]*?\}/g, '');
     
     // 移除常见的AI响应前缀
-    text = text.replace(/^(好的|明白|以下是|根据你的要求|这是).*/gm, '');
+    text = text.replace(/^(好的|明白|以下是|根据你的要求|这是|我将|我来|让我).*/gm, '');
     
     // 清理多余空白
     text = text.replace(/\n{3,}/g, '\n\n').trim();
     
-    // 如果清理后没有有效文本，尝试提取原始响应中的第一段文本
+    // 如果清理后没有有效文本，尝试提取原始响应中的有意义段落
     if (!text || text.length < 10) {
       const lines = response.split('\n').filter(line => {
         const trimmed = line.trim();
-        return trimmed.length > 20 &&
+        return trimmed.length > 15 &&
                !trimmed.startsWith('{') &&
                !trimmed.startsWith('}') &&
                !trimmed.startsWith('[') &&
                !trimmed.startsWith(']') &&
                !trimmed.startsWith('```') &&
-               !trimmed.startsWith('"');
+               !trimmed.startsWith('"') &&
+               !trimmed.startsWith('<') &&
+               !/^\s*[\d.]+\s*$/.test(trimmed); // 排除纯数字行
       });
       
       if (lines.length > 0) {
         return lines.slice(0, 5).join('\n');
       }
       
-      return 'AI分析已完成，但响应格式无法解析。请检查AI模型是否正确返回JSON格式。';
+      // 如果还是没有有效内容，返回更有用的错误信息
+      return 'AI返回的内容格式异常，无法解析为日程。请尝试使用更简洁、具体的描述重新生成。';
     }
     
     return text;
