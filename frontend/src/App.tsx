@@ -86,18 +86,28 @@ function App() {
     name: '',
   });
 
+  // 将 Date 对象转换为 datetime-local 格式的本地时间字符串
+  const toLocalDateTimeString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   // 获取当前时间和1小时后的时间(datetime-local格式)
   const getDefaultStartTime = () => {
     const now = new Date();
     now.setMinutes(Math.ceil(now.getMinutes() / 30) * 30); // 向上取整到最近的30分钟
-    return now.toISOString().slice(0, 16);
+    return toLocalDateTimeString(now);
   };
 
   const getDefaultEndTime = () => {
     const later = new Date();
     later.setMinutes(Math.ceil(later.getMinutes() / 30) * 30);
     later.setHours(later.getHours() + 1); // 默认1小时后
-    return later.toISOString().slice(0, 16);
+    return toLocalDateTimeString(later);
   };
 
   // 日程表单
@@ -252,8 +262,8 @@ function App() {
   };
 
   const applyPlanningTime = (startTime: string, endTime: string) => {
-    const start = new Date(startTime).toISOString().slice(0, 16);
-    const end = new Date(endTime).toISOString().slice(0, 16);
+    const start = toLocalDateTimeString(new Date(startTime));
+    const end = toLocalDateTimeString(new Date(endTime));
     setScheduleForm({
       ...scheduleForm,
       startTime: start,
@@ -263,8 +273,8 @@ function App() {
   };
 
   const applyRecommendation = (startTime: string, endTime: string) => {
-    const start = new Date(startTime).toISOString().slice(0, 16);
-    const end = new Date(endTime).toISOString().slice(0, 16);
+    const start = toLocalDateTimeString(new Date(startTime));
+    const end = toLocalDateTimeString(new Date(endTime));
     setScheduleForm({
       ...scheduleForm,
       startTime: start,
@@ -390,8 +400,8 @@ function App() {
     setEditForm({
       title: schedule.title,
       description: schedule.description || '',
-      startTime: new Date(schedule.startTime).toISOString().slice(0, 16),
-      endTime: new Date(schedule.endTime).toISOString().slice(0, 16),
+      startTime: toLocalDateTimeString(new Date(schedule.startTime)),
+      endTime: toLocalDateTimeString(new Date(schedule.endTime)),
       location: schedule.location || '',
       priority: schedule.priority,
       isAllDay: schedule.isAllDay,
@@ -1758,5 +1768,7 @@ function App() {
     </div>
   );
 }
+
+export default App;
 
 export default App;
