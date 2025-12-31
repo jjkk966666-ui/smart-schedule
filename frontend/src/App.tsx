@@ -416,6 +416,7 @@ function App() {
     setEditLoading(true);
     try {
       const updateData = {
+        id: editingSchedule.id,
         title: editForm.title,
         description: editForm.description,
         startTime: new Date(editForm.startTime).toISOString(),
@@ -425,7 +426,7 @@ function App() {
         isAllDay: editForm.isAllDay,
       };
       
-      await scheduleService.updateSchedule(editingSchedule.id, updateData as any);
+      await scheduleService.updateSchedule(editingSchedule.id, updateData);
       setShowEditForm(false);
       setEditingSchedule(null);
       setEditConflicts([]);
@@ -561,8 +562,9 @@ function App() {
     try {
       const newStatus = schedule.status === 'completed' ? 'pending' : 'completed';
       await scheduleService.updateSchedule(schedule.id, {
+        id: schedule.id,
         status: newStatus,
-      } as any);
+      });
       await loadSchedules();
       await loadStats();
     } catch (error) {

@@ -25,6 +25,7 @@ export const createScheduleSchema = Joi.object({
 });
 
 export const updateScheduleSchema = Joi.object({
+  id: Joi.string(), // 允许id字段（虽然已在URL中，前端可能仍会传递）
   title: Joi.string(),
   description: Joi.string().allow('', null),
   startTime: Joi.date().iso(),
