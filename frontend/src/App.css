@@ -1,3 +1,113 @@
+/* CSS 变量 - 亮色主题 (默认) */
+:root {
+  /* 主色调 */
+  --primary-color: #667eea;
+  --primary-dark: #764ba2;
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  
+  /* 背景色 */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e8e8e8;
+  --bg-hover: #f0f0f0;
+  
+  /* 文字颜色 */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --text-inverse: #ffffff;
+  
+  /* 边框颜色 */
+  --border-color: #e0e0e0;
+  --border-light: #f0f0f0;
+  
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.3);
+  
+  /* 状态颜色 */
+  --success-color: #4caf50;
+  --success-bg: #e8f5e9;
+  --warning-color: #ff9800;
+  --warning-bg: #fff3e0;
+  --danger-color: #f44336;
+  --danger-bg: #ffebee;
+  --info-color: #2196f3;
+  --info-bg: #e3f2fd;
+  
+  /* 优先级颜色 */
+  --priority-high: #e74c3c;
+  --priority-medium: #f39c12;
+  --priority-low: #27ae60;
+  
+  /* 卡片和容器 */
+  --card-bg: #ffffff;
+  --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  
+  /* 输入框 */
+  --input-bg: #ffffff;
+  --input-border: #ddd;
+  --input-focus-border: #667eea;
+  
+  /* 过渡时间 */
+  --transition-fast: 0.2s;
+  --transition-normal: 0.3s;
+}
+
+/* 暗色主题 */
+body[data-theme="dark"] {
+  /* 主色调 */
+  --primary-color: #818cf8;
+  --primary-dark: #a78bfa;
+  --primary-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  
+  /* 背景色 */
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --bg-hover: #1f4068;
+  
+  /* 文字颜色 */
+  --text-primary: #e8e8e8;
+  --text-secondary: #b0b0b0;
+  --text-muted: #888888;
+  --text-inverse: #1a1a2e;
+  
+  /* 边框颜色 */
+  --border-color: #3a3a5c;
+  --border-light: #2a2a4a;
+  
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+  
+  /* 状态颜色 */
+  --success-color: #66bb6a;
+  --success-bg: #1b3d1f;
+  --warning-color: #ffb74d;
+  --warning-bg: #3d2e1b;
+  --danger-color: #ef5350;
+  --danger-bg: #3d1b1b;
+  --info-color: #42a5f5;
+  --info-bg: #1b2d3d;
+  
+  /* 优先级颜色 */
+  --priority-high: #ff6b6b;
+  --priority-medium: #ffd93d;
+  --priority-low: #6bcb77;
+  
+  /* 卡片和容器 */
+  --card-bg: #1e1e3f;
+  --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  
+  /* 输入框 */
+  --input-bg: #2a2a4a;
+  --input-border: #3a3a5c;
+  --input-focus-border: #818cf8;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -15,8 +125,9 @@ body,
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary-gradient);
   min-height: 100vh;
+  transition: background var(--transition-normal) ease, color var(--transition-normal) ease;
 }
 
 /* 认证页面 */
@@ -31,14 +142,15 @@ body {
 }
 
 .auth-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
   padding: 40px;
   width: 100%;
   max-width: 400px;
   margin: auto;
   animation: slideIn 0.3s ease-out;
+  transition: background var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
 }
 
 @keyframes slideIn {
@@ -54,7 +166,7 @@ body {
 
 .auth-card h1 {
   text-align: center;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 30px;
   font-size: 32px;
 }
@@ -69,16 +181,17 @@ body {
   flex: 1;
   padding: 12px;
   border: none;
-  background: #f0f0f0;
+  background: var(--bg-hover);
+  color: var(--text-primary);
   border-radius: 8px;
   cursor: pointer;
   font-size: 16px;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .auth-tabs button.active {
-  background: #667eea;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-inverse);
 }
 
 .auth-form {
@@ -89,31 +202,33 @@ body {
 
 .auth-form input {
   padding: 14px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 15px;
-  transition: border-color 0.3s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color var(--transition-normal), background var(--transition-normal);
 }
 
 .auth-form input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--input-focus-border);
 }
 
 .auth-form button {
   padding: 14px;
-  background: #667eea;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background var(--transition-normal), opacity var(--transition-normal);
 }
 
 .auth-form button:hover:not(:disabled) {
-  background: #5568d3;
+  opacity: 0.9;
 }
 
 .auth-form button:disabled {
@@ -124,20 +239,22 @@ body {
 /* 主应用 */
 .app-container {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
+  transition: background var(--transition-normal) ease;
 }
 
 .app-header {
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
   padding: 20px 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: background var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
 }
 
 .app-header h1 {
-  color: #333;
+  color: var(--text-primary);
   font-size: 28px;
 }
 
@@ -148,23 +265,44 @@ body {
 }
 
 .header-actions span {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 16px;
 }
 
 .header-actions button {
   padding: 10px 20px;
-  background: #f44336;
-  color: white;
+  background: var(--danger-color);
+  color: var(--text-inverse);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s;
+  transition: background var(--transition-normal), opacity var(--transition-normal);
 }
 
 .header-actions button:hover {
-  background: #d32f2f;
+  opacity: 0.9;
+}
+
+/* 主题切换按钮 */
+.btn-theme-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-tertiary) !important;
+  border: 2px solid var(--border-color) !important;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal) !important;
+  padding: 0 !important;
+}
+
+.btn-theme-toggle:hover {
+  background: var(--bg-hover) !important;
+  transform: rotate(15deg);
 }
 
 .app-main {
@@ -181,56 +319,59 @@ body {
 }
 
 .schedule-header h2 {
-  color: #333;
+  color: var(--text-primary);
   font-size: 24px;
 }
 
 .btn-primary {
   padding: 12px 24px;
-  background: #667eea;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .btn-primary:hover {
-  background: #5568d3;
+  opacity: 0.9;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: var(--shadow-md);
 }
 
 /* 日程表单 */
 .schedule-form {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 30px;
   margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 15px;
+  transition: background var(--transition-normal) ease, box-shadow var(--transition-normal) ease;
 }
 
 .schedule-form input,
 .schedule-form textarea,
 .schedule-form select {
   padding: 12px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 15px;
   font-family: inherit;
-  transition: border-color 0.3s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color var(--transition-normal), background var(--transition-normal);
 }
 
 .schedule-form input:focus,
 .schedule-form textarea:focus,
 .schedule-form select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--input-focus-border);
 }
 
 .schedule-form textarea {
@@ -246,18 +387,18 @@ body {
 
 .schedule-form button {
   padding: 14px;
-  background: #4caf50;
-  color: white;
+  background: var(--success-color);
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background var(--transition-normal), opacity var(--transition-normal);
 }
 
 .schedule-form button:hover:not(:disabled) {
-  background: #45a049;
+  opacity: 0.9;
 }
 
 .schedule-form button:disabled {
@@ -274,28 +415,29 @@ body {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #999;
+  color: var(--text-muted);
   font-size: 18px;
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
+  transition: background var(--transition-normal) ease, color var(--transition-normal) ease;
 }
 
 .schedule-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   display: flex;
   gap: 20px;
   align-items: flex-start;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), background var(--transition-normal);
   position: relative;
   overflow: hidden;
 }
 
 .schedule-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .schedule-priority {
@@ -313,13 +455,13 @@ body {
 }
 
 .schedule-content h3 {
-  color: #333;
+  color: var(--text-primary);
   font-size: 20px;
   margin-bottom: 8px;
 }
 
 .schedule-content p {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 12px;
   line-height: 1.5;
 }
@@ -328,13 +470,13 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
-  color: #999;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
 .schedule-status {
-  background: #e3f2fd;
-  color: #2196f3;
+  background: var(--info-bg);
+  color: var(--info-color);
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 12px;
@@ -343,23 +485,23 @@ body {
 
 /* 日程状态样式 */
 .schedule-status.status-pending {
-  background: #fff3e0;
-  color: #ef6c00;
+  background: var(--warning-bg);
+  color: var(--warning-color);
 }
 
 .schedule-status.status-in_progress {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--info-bg);
+  color: var(--info-color);
 }
 
 .schedule-status.status-completed {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--success-bg);
+  color: var(--success-color);
 }
 
 .schedule-status.status-cancelled {
-  background: #fafafa;
-  color: #9e9e9e;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
 }
 
 /* 日程勾选框 */
@@ -376,52 +518,51 @@ body {
 .schedule-checkbox .checkbox {
   width: 28px;
   height: 28px;
-  border: 3px solid #bdbdbd;
+  border: 3px solid var(--border-color);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   font-weight: bold;
-  color: white;
-  transition: all 0.3s ease;
-  background: white;
+  color: var(--text-inverse);
+  transition: all var(--transition-normal) ease;
+  background: var(--card-bg);
 }
 
 .schedule-checkbox .checkbox:hover {
-  border-color: #4caf50;
-  background: #e8f5e9;
+  border-color: var(--success-color);
+  background: var(--success-bg);
   transform: scale(1.1);
 }
 
 .schedule-checkbox .checkbox.checked {
-  background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
-  border-color: #4caf50;
-  color: white;
+  background: linear-gradient(135deg, var(--success-color) 0%, #8bc34a 100%);
+  border-color: var(--success-color);
+  color: var(--text-inverse);
 }
 
 .schedule-checkbox .checkbox.checked:hover {
-  background: linear-gradient(135deg, #388e3c 0%, #689f38 100%);
-  border-color: #388e3c;
+  opacity: 0.9;
 }
 
 /* 已完成日程卡片样式 */
 .schedule-card.completed {
   opacity: 0.8;
-  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  background: var(--bg-secondary);
 }
 
 .schedule-card.completed .schedule-content h3 {
   text-decoration: line-through;
-  color: #9e9e9e;
+  color: var(--text-muted);
 }
 
 .schedule-card.completed .schedule-content p {
-  color: #bdbdbd;
+  color: var(--text-muted);
 }
 
 .schedule-card.completed .schedule-meta {
-  color: #bdbdbd;
+  color: var(--text-muted);
 }
 
 .schedule-card.completed .schedule-priority {
@@ -443,44 +584,44 @@ body {
   gap: 8px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .schedule-section .section-header h3 {
   margin: 0;
   font-size: 18px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
 .schedule-section.completed-section {
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 2px dashed #e0e0e0;
+  border-top: 2px dashed var(--border-color);
 }
 
 .schedule-section.completed-section .section-header {
-  border-bottom-color: #c8e6c9;
+  border-bottom-color: var(--success-bg);
 }
 
 .schedule-section.completed-section .section-header h3 {
-  color: #4caf50;
+  color: var(--success-color);
 }
 
 .btn-delete {
   padding: 8px 16px;
-  background: #ffebee;
-  color: #f44336;
+  background: var(--danger-bg);
+  color: var(--danger-color);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .btn-delete:hover {
-  background: #f44336;
-  color: white;
+  background: var(--danger-color);
+  color: var(--text-inverse);
 }
 
 /* 响应式设计 */
@@ -516,15 +657,16 @@ body {
 
 /* 统计面板 */
 .stats-panel {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition-normal) ease;
 }
 
 .stats-panel h3 {
-  color: #333;
+  color: var(--text-primary);
   font-size: 20px;
   margin-bottom: 20px;
   display: flex;
@@ -572,25 +714,26 @@ body {
 
 /* 冲突警告 */
 .conflict-warning {
-  background: #fff3cd;
-  border: 2px solid #ffc107;
+  background: var(--warning-bg);
+  border: 2px solid var(--warning-color);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 15px;
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  transition: background var(--transition-normal) ease;
 }
 
 .conflict-warning strong {
-  color: #856404;
+  color: var(--warning-color);
   font-size: 16px;
   display: block;
   margin-bottom: 8px;
 }
 
 .conflict-warning p {
-  color: #856404;
+  color: var(--warning-color);
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
@@ -602,12 +745,12 @@ body {
 }
 
 .conflict-list li {
-  color: #856404;
+  color: var(--warning-color);
   margin-bottom: 4px;
 }
 
 .warning-icon {
-  color: #ffc107;
+  color: var(--warning-color);
   font-size: 24px;
   flex-shrink: 0;
   margin-top: 2px;
@@ -617,34 +760,35 @@ body {
 .loading {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--text-muted);
   font-size: 16px;
 }
 
 .error-message {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--danger-bg);
+  color: var(--danger-color);
   padding: 16px;
   border-radius: 8px;
   margin-bottom: 20px;
-  border: 2px solid #ef5350;
+  border: 2px solid var(--danger-color);
+  transition: background var(--transition-normal) ease;
 }
 
 /* 优先级颜色 */
 .schedule-card[data-priority="urgent"] .schedule-priority {
-  background: #f44336;
+  background: var(--priority-high);
 }
 
 .schedule-card[data-priority="high"] .schedule-priority {
-  background: #ff9800;
+  background: var(--priority-medium);
 }
 
 .schedule-card[data-priority="medium"] .schedule-priority {
-  background: #2196f3;
+  background: var(--info-color);
 }
 
 .schedule-card[data-priority="low"] .schedule-priority {
-  background: #4caf50;
+  background: var(--priority-low);
 }
 
 /* AI 推荐相关样式 */
@@ -655,33 +799,34 @@ body {
 
 .btn-recommend {
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--primary-gradient);
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-recommend:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  opacity: 0.9;
 }
 
 .recommendations-panel {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #667eea;
+  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--primary-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .recommendations-panel h3 {
-  color: #667eea;
+  color: var(--primary-color);
   margin-bottom: 20px;
   font-size: 18px;
 }
@@ -693,52 +838,53 @@ body {
 }
 
 .recommendation-item {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--bg-tertiary);
   padding: 16px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
   border: 2px solid transparent;
+  color: var(--text-primary);
 }
 
 .recommendation-item:hover {
-  border-color: #667eea;
+  border-color: var(--primary-color);
   transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .recommendation-time {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
   font-size: 15px;
 }
 
 .recommendation-reason {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
   margin-bottom: 8px;
 }
 
 .recommendation-score {
-  color: #667eea;
+  color: var(--primary-color);
   font-size: 13px;
   font-weight: 600;
 }
 
 .btn-close-recommendations {
   padding: 10px 20px;
-  background: #f0f0f0;
-  color: #666;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .btn-close-recommendations:hover {
-  background: #e0e0e0;
+  background: var(--bg-tertiary);
 }
 
 /* 统计卡片样式优化 */
@@ -855,9 +1001,11 @@ body {
   border-radius: 10px;
   margin-bottom: 20px;
   font-size: 15px;
-  color: #1565c0;
+  color: var(--info-color);
   font-weight: 500;
   animation: slideDown 0.3s ease;
+  background: var(--info-bg);
+  transition: background var(--transition-normal) ease;
 }
 
 @keyframes slideDown {
@@ -873,19 +1021,19 @@ body {
 
 .btn-clear-filter {
   padding: 6px 14px;
-  background: white;
-  color: #1565c0;
-  border: 2px solid #1565c0;
+  background: var(--card-bg);
+  color: var(--info-color);
+  border: 2px solid var(--info-color);
   border-radius: 16px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .btn-clear-filter:hover {
-  background: #1565c0;
-  color: white;
+  background: var(--info-color);
+  color: var(--text-inverse);
 }
 
 /* AI配置模态框 */
@@ -895,7 +1043,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -903,15 +1051,16 @@ body {
 }
 
 .modal-content {
-  background: white;
+  background: var(--card-bg);
   border-radius: 16px;
   padding: 30px;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
   animation: modalSlideIn 0.3s ease-out;
+  transition: background var(--transition-normal) ease;
 }
 
 @keyframes modalSlideIn {
@@ -933,7 +1082,7 @@ body {
 }
 
 .modal-header h2 {
-  color: #333;
+  color: var(--text-primary);
   font-size: 24px;
   margin: 0;
 }
@@ -942,7 +1091,7 @@ body {
   background: none;
   border: none;
   font-size: 28px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -951,12 +1100,12 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .modal-close:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .config-form {
@@ -973,25 +1122,27 @@ body {
 
 .form-group label {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .form-group input {
   padding: 12px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 15px;
-  transition: border-color 0.3s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color var(--transition-normal), background var(--transition-normal);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--input-focus-border);
 }
 
 .form-group small {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -1004,18 +1155,18 @@ body {
 .btn-save {
   flex: 1;
   padding: 12px;
-  background: #667eea;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background var(--transition-normal), opacity var(--transition-normal);
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #5568d3;
+  opacity: 0.9;
 }
 
 .btn-save:disabled {
@@ -1026,45 +1177,46 @@ body {
 .btn-cancel {
   flex: 1;
   padding: 12px;
-  background: #f0f0f0;
-  color: #666;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background var(--transition-normal);
 }
 
 .btn-cancel:hover {
-  background: #e0e0e0;
+  background: var(--bg-tertiary);
 }
 
 .btn-settings {
   padding: 10px 20px;
-  background: #667eea;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s;
+  transition: background var(--transition-normal), opacity var(--transition-normal);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .btn-settings:hover {
-  background: #5568d3;
+  opacity: 0.9;
 }
 
 .success-message {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--success-bg);
+  color: var(--success-color);
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 15px;
-  border: 2px solid #4caf50;
+  border: 2px solid var(--success-color);
+  transition: background var(--transition-normal) ease;
 }
 
 /* AI增强功能样式 */
@@ -1080,19 +1232,19 @@ body {
 .btn-ai-planning {
   padding: 12px 24px;
   background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  color: white;
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-ai-planning:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+  opacity: 0.9;
 }
 
 .btn-ai-planning:disabled {
@@ -1102,11 +1254,11 @@ body {
 
 .ai-config-hint {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .ai-config-hint a {
-  color: #667eea;
+  color: var(--primary-color);
   text-decoration: none;
   font-weight: 600;
 }
@@ -1129,7 +1281,7 @@ body {
 }
 
 .panel-header h3 {
-  color: #667eea;
+  color: var(--primary-color);
   font-size: 18px;
   margin: 0;
   display: flex;
@@ -1141,7 +1293,7 @@ body {
   background: none;
   border: none;
   font-size: 24px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -1154,14 +1306,14 @@ body {
 }
 
 .btn-close-panel:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* AI徽章 */
 .ai-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--primary-gradient);
+  color: var(--text-inverse);
   font-size: 11px;
   padding: 4px 8px;
   border-radius: 12px;
@@ -1178,8 +1330,8 @@ body {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #667eea;
+  border: 4px solid var(--border-light);
+  border-top: 4px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 20px;
@@ -1191,47 +1343,49 @@ body {
 }
 
 .loading-state p {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 16px;
 }
 
 .no-recommendations {
   text-align: center;
-  color: #999;
+  color: var(--text-muted);
   padding: 20px;
 }
 
 /* AI建议样式 */
 .ai-advice {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+  background: var(--bg-tertiary);
   padding: 16px;
   border-radius: 8px;
   margin-top: 20px;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--primary-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .ai-advice h4 {
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 10px 0;
   font-size: 15px;
 }
 
 .ai-advice p {
-  color: #555;
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.6;
 }
 
 .productivity-tips {
-  background: #e8f5e9;
+  background: var(--success-bg);
   padding: 16px;
   border-radius: 8px;
   margin-top: 15px;
-  border-left: 4px solid #4caf50;
+  border-left: 4px solid var(--success-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .productivity-tips h4 {
-  color: #2e7d32;
+  color: var(--success-color);
   margin: 0 0 12px 0;
   font-size: 15px;
 }
@@ -1242,19 +1396,20 @@ body {
 }
 
 .productivity-tips li {
-  color: #33691e;
+  color: var(--success-color);
   margin-bottom: 6px;
   line-height: 1.5;
 }
 
 /* AI规划面板 */
 .ai-planning-panel {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   border: 2px solid #11998e;
+  transition: background var(--transition-normal) ease;
 }
 
 .planning-result {
@@ -1268,9 +1423,10 @@ body {
 .coordination-section,
 .tips-section,
 .suggested-times-section {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   padding: 16px;
   border-radius: 8px;
+  transition: background var(--transition-normal) ease;
 }
 
 .analysis-section h4,
@@ -1278,7 +1434,7 @@ body {
 .coordination-section h4,
 .tips-section h4,
 .suggested-times-section h4 {
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 12px 0;
   font-size: 15px;
 }
@@ -1286,15 +1442,15 @@ body {
 .analysis-section p,
 .priority-section p,
 .coordination-section p {
-  color: #555;
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.6;
 }
 
-.priority-low { color: #4caf50; font-weight: 600; }
-.priority-medium { color: #2196f3; font-weight: 600; }
-.priority-high { color: #ff9800; font-weight: 600; }
-.priority-urgent { color: #f44336; font-weight: 600; }
+.priority-low { color: var(--priority-low); font-weight: 600; }
+.priority-medium { color: var(--info-color); font-weight: 600; }
+.priority-high { color: var(--priority-medium); font-weight: 600; }
+.priority-urgent { color: var(--priority-high); font-weight: 600; }
 
 .tips-section ul {
   margin: 0;
@@ -1302,7 +1458,7 @@ body {
 }
 
 .tips-section li {
-  color: #555;
+  color: var(--text-secondary);
   margin-bottom: 6px;
   line-height: 1.5;
 }
@@ -1310,35 +1466,36 @@ body {
 .error-state {
   text-align: center;
   padding: 30px;
-  background: #fff3e0;
+  background: var(--warning-bg);
   border-radius: 8px;
-  border: 2px solid #ff9800;
+  border: 2px solid var(--warning-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .error-state p {
-  color: #e65100;
+  color: var(--warning-color);
   margin-bottom: 15px;
 }
 
 .btn-settings-small {
   padding: 10px 20px;
-  background: #667eea;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s;
+  transition: background var(--transition-normal), opacity var(--transition-normal);
 }
 
 .btn-settings-small:hover {
-  background: #5568d3;
+  opacity: 0.9;
 }
 
 /* 冲突项目样式优化 */
 .conflict-item {
   font-size: 14px;
-  color: #856404;
+  color: var(--warning-color);
   padding: 4px 0;
 }
 
@@ -1381,7 +1538,7 @@ body {
 .empty-suggestions {
   text-align: center;
   padding: 40px 20px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .empty-suggestions p {
@@ -1390,7 +1547,7 @@ body {
 
 .empty-suggestions .hint {
   font-size: 14px;
-  color: #bbb;
+  color: var(--text-muted);
 }
 
 .suggestions-list {
@@ -1400,10 +1557,11 @@ body {
 }
 
 .suggestion-item {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .suggestion-header {
@@ -1412,12 +1570,12 @@ body {
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .suggestion-type {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--primary-gradient);
+  color: var(--text-inverse);
   padding: 6px 12px;
   border-radius: 16px;
   font-size: 13px;
@@ -1425,7 +1583,7 @@ body {
 }
 
 .suggestion-time {
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -1438,17 +1596,18 @@ body {
 .suggestion-item .coordination-section,
 .suggestion-item .tips-section,
 .suggestion-item .suggested-times-section {
-  background: white;
+  background: var(--card-bg);
   padding: 14px;
   border-radius: 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--border-light);
+  transition: background var(--transition-normal) ease;
 }
 
 .suggestion-metadata {
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px dashed #e0e0e0;
-  color: #999;
+  border-top: 1px dashed var(--border-color);
+  color: var(--text-muted);
 }
 
 .suggestion-metadata small {
@@ -1456,14 +1615,15 @@ body {
 }
 
 .raw-content {
-  background: white;
+  background: var(--card-bg);
   padding: 16px;
   border-radius: 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--border-light);
+  transition: background var(--transition-normal) ease;
 }
 
 .raw-content p {
-  color: #555;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
   white-space: pre-wrap;
@@ -1488,9 +1648,9 @@ body {
 .schedule-edit-hint {
   margin-top: 10px;
   font-size: 12px;
-  color: #667eea;
+  color: var(--primary-color);
   opacity: 0.7;
-  transition: opacity 0.3s;
+  transition: opacity var(--transition-normal);
 }
 
 .schedule-content:hover .schedule-edit-hint {
@@ -1499,7 +1659,7 @@ body {
 
 /* 日程卡片悬停效果增强 */
 .schedule-card:hover .schedule-content {
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+  background: var(--bg-hover);
   border-radius: 8px;
 }
 
@@ -1512,34 +1672,34 @@ body {
 
 .btn-ai-view {
   padding: 8px 12px;
-  background: #e3f2fd;
-  color: #2196f3;
+  background: var(--info-bg);
+  color: var(--info-color);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .btn-ai-view:hover {
-  background: #2196f3;
-  color: white;
+  background: var(--info-color);
+  color: var(--text-inverse);
 }
 
 .schedule-card .btn-delete {
   padding: 8px 12px;
-  background: #ffebee;
-  color: #f44336;
+  background: var(--danger-bg);
+  color: var(--danger-color);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .schedule-card .btn-delete:hover {
-  background: #f44336;
-  color: white;
+  background: var(--danger-color);
+  color: var(--text-inverse);
 }
 
 /* 编辑日程模态框 */
@@ -1561,7 +1721,7 @@ body {
 
 .edit-form .form-group label {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
@@ -1569,18 +1729,20 @@ body {
 .edit-form .form-group textarea,
 .edit-form .form-group select {
   padding: 12px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 15px;
   font-family: inherit;
-  transition: border-color 0.3s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color var(--transition-normal), background var(--transition-normal);
 }
 
 .edit-form .form-group input:focus,
 .edit-form .form-group textarea:focus,
 .edit-form .form-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--input-focus-border);
 }
 
 .edit-form .form-group textarea {
@@ -1603,18 +1765,18 @@ body {
 .edit-form .btn-save {
   flex: 1;
   padding: 14px;
-  background: #667eea;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .edit-form .btn-save:hover:not(:disabled) {
-  background: #5568d3;
+  opacity: 0.9;
 }
 
 .edit-form .btn-save:disabled {
@@ -1625,18 +1787,18 @@ body {
 .edit-form .btn-cancel {
   flex: 1;
   padding: 14px;
-  background: #f0f0f0;
-  color: #666;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background var(--transition-normal);
 }
 
 .edit-form .btn-cancel:hover {
-  background: #e0e0e0;
+  background: var(--bg-tertiary);
 }
 
 /* 响应式 - 编辑模态框 */
@@ -1660,19 +1822,19 @@ body {
 .btn-smart-plan {
   padding: 12px 24px;
   background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-  color: white;
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-smart-plan:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+  opacity: 0.9;
 }
 
 .smart-planning-modal {
@@ -1692,7 +1854,7 @@ body {
 .smart-plan-input-section label {
   display: block;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 12px;
   font-size: 16px;
 }
@@ -1700,13 +1862,15 @@ body {
 .smart-plan-input-section textarea {
   width: 100%;
   padding: 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   font-size: 15px;
   font-family: inherit;
   resize: vertical;
   min-height: 120px;
-  transition: border-color 0.3s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color var(--transition-normal), background var(--transition-normal);
 }
 
 .smart-plan-input-section textarea:focus {
@@ -1715,7 +1879,7 @@ body {
 }
 
 .smart-plan-input-section textarea:disabled {
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
   cursor: not-allowed;
 }
 
@@ -1724,19 +1888,19 @@ body {
   width: 100%;
   padding: 16px 24px;
   background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-  color: white;
+  color: var(--text-inverse);
   border: none;
   border-radius: 10px;
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
   margin-top: 16px;
 }
 
 .btn-generate:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+  opacity: 0.9;
 }
 
 .btn-generate:disabled {
@@ -1749,30 +1913,32 @@ body {
 }
 
 .plan-summary {
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  background: var(--success-bg);
   padding: 20px;
   border-radius: 12px;
   margin-bottom: 24px;
-  border-left: 4px solid #4caf50;
+  border-left: 4px solid var(--success-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .plan-summary h4 {
-  color: #2e7d32;
+  color: var(--success-color);
   margin: 0 0 12px 0;
   font-size: 16px;
 }
 
 .plan-summary p {
-  color: #33691e;
+  color: var(--success-color);
   margin: 0;
   line-height: 1.6;
 }
 
 .plan-schedules {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   overflow: hidden;
+  transition: background var(--transition-normal) ease;
 }
 
 .plan-schedules-header {
@@ -1780,19 +1946,20 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecef 100%);
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .plan-schedules-header h4 {
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
   font-size: 16px;
 }
 
 .select-hint {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .plan-schedule-list {
@@ -1804,9 +1971,9 @@ body {
   display: flex;
   align-items: flex-start;
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .plan-schedule-item:last-child {
@@ -1814,16 +1981,16 @@ body {
 }
 
 .plan-schedule-item.selected {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  background: var(--info-bg);
 }
 
 .plan-schedule-item.unselected {
-  background: #fafafa;
+  background: var(--bg-secondary);
   opacity: 0.6;
 }
 
 .plan-schedule-item:hover {
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  background: var(--success-bg);
 }
 
 .plan-item-checkbox {
@@ -1839,7 +2006,7 @@ body {
 .plan-item-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -1852,31 +2019,32 @@ body {
 
 .plan-item-time {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 
 .plan-item-desc {
   font-size: 13px;
-  color: #888;
+  color: var(--text-muted);
   margin-bottom: 6px;
   line-height: 1.4;
 }
 
 .plan-item-location {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .plan-item-reason {
   font-size: 13px;
-  color: #2e7d32;
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: var(--success-color);
+  background: var(--success-bg);
   padding: 8px 12px;
   border-radius: 6px;
   margin-top: 8px;
-  border-left: 3px solid #4caf50;
+  border-left: 3px solid var(--success-color);
   line-height: 1.5;
+  transition: background var(--transition-normal) ease;
 }
 
 .plan-actions {
@@ -1884,25 +2052,25 @@ body {
   gap: 12px;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 2px solid #f0f0f0;
+  border-top: 2px solid var(--border-light);
 }
 
 .btn-save-plan {
   flex: 2;
   padding: 16px 24px;
   background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
-  color: white;
+  color: var(--text-inverse);
   border: none;
   border-radius: 10px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .btn-save-plan:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+  opacity: 0.9;
 }
 
 .btn-save-plan:disabled {
@@ -1948,10 +2116,10 @@ body {
   left: -400px;
   width: 400px;
   height: 100vh;
-  background: white;
+  background: var(--card-bg);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
   z-index: 100;
-  transition: left 0.3s ease;
+  transition: left 0.3s ease, background var(--transition-normal) ease;
   display: flex;
   flex-direction: column;
 }
@@ -1965,8 +2133,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--primary-gradient);
+  color: var(--text-inverse);
 }
 
 .sidebar-header h3 {
@@ -1977,7 +2145,7 @@ body {
 .sidebar-close {
   background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: white;
+  color: var(--text-inverse);
   font-size: 24px;
   width: 36px;
   height: 36px;
@@ -1986,7 +2154,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.3s;
+  transition: background var(--transition-normal);
 }
 
 .sidebar-close:hover {
@@ -1997,12 +2165,14 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+  background: var(--bg-secondary);
+  transition: background var(--transition-normal) ease;
 }
 
 .empty-history {
   text-align: center;
   padding: 40px 20px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .empty-history p {
@@ -2011,7 +2181,7 @@ body {
 
 .empty-history .hint {
   font-size: 13px;
-  color: #bbb;
+  color: var(--text-muted);
 }
 
 .history-list {
@@ -2022,22 +2192,22 @@ body {
 
 .history-count {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .history-item {
-  background: #f9fafb;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 16px;
-  border: 1px solid #e0e0e0;
-  transition: box-shadow 0.3s;
+  border: 1px solid var(--border-color);
+  transition: box-shadow var(--transition-normal), background var(--transition-normal) ease;
 }
 
 .history-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .history-item-header {
@@ -2049,7 +2219,7 @@ body {
 
 .history-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .btn-delete-history {
@@ -2059,33 +2229,34 @@ body {
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: background 0.3s;
+  transition: background var(--transition-normal);
 }
 
 .btn-delete-history:hover {
-  background: #ffebee;
+  background: var(--danger-bg);
 }
 
 .history-description {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 10px;
   line-height: 1.5;
 }
 
 .history-summary {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 12px;
   padding: 10px;
-  background: #e8f5e9;
+  background: var(--success-bg);
   border-radius: 8px;
   line-height: 1.5;
+  transition: background var(--transition-normal) ease;
 }
 
 .history-schedules {
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .history-schedule-list {
@@ -2096,16 +2267,17 @@ body {
 }
 
 .history-schedule-item {
-  background: white;
+  background: var(--bg-secondary);
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--border-light);
+  transition: background var(--transition-normal) ease;
 }
 
 .history-schedule-title {
   font-weight: 600;
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2120,54 +2292,55 @@ body {
 }
 
 .priority-dot.priority-urgent {
-  background: #f44336;
+  background: var(--priority-high);
 }
 
 .priority-dot.priority-high {
-  background: #ff9800;
+  background: var(--priority-medium);
 }
 
 .priority-dot.priority-medium {
-  background: #2196f3;
+  background: var(--info-color);
 }
 
 .priority-dot.priority-low {
-  background: #4caf50;
+  background: var(--priority-low);
 }
 
 .history-schedule-time {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .history-schedule-reason {
   font-size: 12px;
-  color: #2e7d32;
-  background: #e8f5e9;
+  color: var(--success-color);
+  background: var(--success-bg);
   padding: 6px 8px;
   border-radius: 4px;
   margin-top: 6px;
   line-height: 1.4;
+  transition: background var(--transition-normal) ease;
 }
 
 .history-saved-count {
   margin-top: 12px;
   font-size: 12px;
-  color: #4caf50;
+  color: var(--success-color);
   font-weight: 600;
 }
 
 /* 规划历史按钮 */
 .btn-history {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--primary-gradient);
+  color: var(--text-inverse);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2175,11 +2348,11 @@ body {
 
 .btn-history:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  opacity: 0.9;
 }
 
 .btn-history.active {
-  background: linear-gradient(135deg, #5568d3 0%, #6a3f91 100%);
+  opacity: 0.85;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -2253,7 +2426,7 @@ body {
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
   box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
 }
 
@@ -2296,6 +2469,11 @@ body {
   padding: 20px;
   margin-bottom: 24px;
   border: 1px solid #ffd700;
+  transition: background var(--transition-normal) ease;
+}
+
+body[data-theme="dark"] .vip-info {
+  background: linear-gradient(135deg, #3d3520 0%, #4a3d1a 100%);
 }
 
 .vip-info p {
@@ -2303,6 +2481,10 @@ body {
   color: #8b4513;
   margin: 0 0 12px 0;
   font-size: 15px;
+}
+
+body[data-theme="dark"] .vip-info p {
+  color: #ffd700;
 }
 
 .vip-info ul {
@@ -2316,8 +2498,16 @@ body {
   line-height: 1.5;
 }
 
+body[data-theme="dark"] .vip-info li {
+  color: #daa520;
+}
+
 .vip-info li strong {
   color: #8b4513;
+}
+
+body[data-theme="dark"] .vip-info li strong {
+  color: #ffd700;
 }
 
 .vip-form {
@@ -2329,13 +2519,15 @@ body {
 .vip-form input {
   flex: 1;
   padding: 14px 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   font-size: 16px;
   font-family: 'Consolas', monospace;
   letter-spacing: 2px;
   text-transform: uppercase;
-  transition: border-color 0.3s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color var(--transition-normal), background var(--transition-normal);
 }
 
 .vip-form input:focus {
@@ -2344,20 +2536,20 @@ body {
 }
 
 .vip-form input:disabled {
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
   cursor: not-allowed;
 }
 
 .btn-redeem {
   padding: 14px 24px;
   background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
-  color: white;
+  color: var(--text-inverse);
   border: none;
   border-radius: 10px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
   white-space: nowrap;
 }
 
@@ -2372,24 +2564,26 @@ body {
 }
 
 .vip-error {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--danger-bg);
+  color: var(--danger-color);
   padding: 12px 16px;
   border-radius: 8px;
   margin-top: 12px;
   font-size: 14px;
-  border: 1px solid #ef5350;
+  border: 1px solid var(--danger-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .vip-success {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--success-bg);
+  color: var(--success-color);
   padding: 12px 16px;
   border-radius: 8px;
   margin-top: 12px;
   font-size: 14px;
-  border: 1px solid #4caf50;
+  border: 1px solid var(--success-color);
   animation: success-pulse 0.5s ease;
+  transition: background var(--transition-normal) ease;
 }
 
 @keyframes success-pulse {
@@ -2399,22 +2593,24 @@ body {
 }
 
 .vip-current-status {
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  background: var(--success-bg);
   border-radius: 12px;
   padding: 16px;
   margin-top: 16px;
   text-align: center;
-  border: 1px solid #4caf50;
+  border: 1px solid var(--success-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .vip-current-status p {
   margin: 6px 0;
-  color: #2e7d32;
+  color: var(--success-color);
 }
 
 .vip-current-status .hint {
   font-size: 13px;
-  color: #66bb6a;
+  color: var(--success-color);
+  opacity: 0.8;
 }
 
 /* AI使用情况显示 */
@@ -2424,16 +2620,17 @@ body {
   justify-content: center;
   gap: 16px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  background: var(--info-bg);
   border-radius: 10px;
   margin-top: 16px;
   font-size: 14px;
-  color: #1976d2;
+  color: var(--info-color);
+  transition: background var(--transition-normal) ease;
 }
 
 .usage-info.limit-reached {
-  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-  color: #c62828;
+  background: var(--danger-bg);
+  color: var(--danger-color);
 }
 
 .usage-info .limit-warning {
@@ -2451,7 +2648,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
 }
 
 .btn-upgrade-vip:hover {

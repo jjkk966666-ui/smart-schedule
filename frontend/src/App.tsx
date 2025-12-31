@@ -5,6 +5,9 @@ import { aiService } from './services/aiService';
 import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem, AIUsageInfo } from './types';
 import './App.css';
 
+// 主题类型
+type ThemeMode = 'light' | 'dark';
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -15,6 +18,13 @@ function App() {
   const [conflicts, setConflicts] = useState<Schedule[]>([]);
   const [stats, setStats] = useState<ScheduleStats | null>(null);
   
+  // 主题模式状态
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    // 从 localStorage 读取保存的主题，默认为 light
+    const savedTheme = localStorage.getItem('theme') as ThemeMode;
+    return savedTheme || 'light';
+  });
+
   // 日程筛选状态
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [recommendations, setRecommendations] = useState<TimeRecommendation | null>(null);
@@ -100,6 +110,18 @@ function App() {
     priority: 'medium',
     isAllDay: false,
   });
+
+  // 主题切换效果
+  useEffect(() => {
+    // 应用主题到 document.body
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  // 切换主题
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+  };
 
   useEffect(() => {
     if (authService.isAuthenticated()) {
@@ -825,6 +847,15 @@ function App() {
       <header className="app-header">
         <h1>📅 智能日程表</h1>
         <div className="header-actions">
+          {/* 主题切换按钮 */}
+          <button
+            className="btn-theme-toggle"
+            onClick={toggleTheme}
+            title={theme === 'light' ? '切换到暗色主题' : '切换到亮色主题'}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+          
           <button
             className={`btn-history ${showHistorySidebar ? 'active' : ''}`}
             onClick={() => setShowHistorySidebar(!showHistorySidebar)}
