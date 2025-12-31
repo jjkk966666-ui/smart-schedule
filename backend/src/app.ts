@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes';
 import scheduleRoutes from './routes/schedule.routes';
 import tagRoutes from './routes/tag.routes';
 import aiRoutes from './routes/ai.routes';
+import adminRoutes from './routes/admin.routes';
 import { errorHandler } from './middlewares/error.middleware';
 
 dotenv.config();
@@ -62,6 +63,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 错误处理
 app.use(errorHandler);
