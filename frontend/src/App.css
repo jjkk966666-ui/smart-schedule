@@ -2682,3 +2682,344 @@ body[data-theme="dark"] .vip-info li strong {
     gap: 8px;
   }
 }
+
+/* VIP周报按钮 */
+.btn-weekly-report {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all var(--transition-normal);
+  margin-left: 8px;
+}
+
+.btn-weekly-report:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 周报分析模态框 */
+.weekly-report-modal {
+  max-width: 800px;
+  width: 95%;
+}
+
+.weekly-report-modal .modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin: -30px -30px 0 -30px;
+  padding: 24px 30px;
+  border-radius: 16px 16px 0 0;
+}
+
+.weekly-report-modal .modal-header h2 {
+  color: var(--text-inverse);
+}
+
+.weekly-report-modal .modal-close {
+  color: var(--text-inverse);
+}
+
+.weekly-report-modal .modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.weekly-report-modal .modal-body {
+  padding-top: 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.weekly-report-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 概览统计卡片 */
+.report-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.overview-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  color: var(--text-inverse);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.overview-card.completed {
+  background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+}
+
+.overview-card.incomplete {
+  background: linear-gradient(135deg, #ff9800 0%, #ffc107 100%);
+}
+
+.overview-card.rate {
+  background: linear-gradient(135deg, #2196f3 0%, #03a9f4 100%);
+}
+
+.overview-value {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.overview-label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* 效率评分区域 */
+.efficiency-score-section {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 24px;
+  border: 2px solid var(--border-color);
+  transition: background var(--transition-normal) ease;
+}
+
+.efficiency-score-section h3 {
+  color: var(--text-primary);
+  margin: 0 0 20px 0;
+  font-size: 18px;
+}
+
+.score-display {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  justify-content: center;
+}
+
+.score-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 8px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-bg);
+  transition: background var(--transition-normal) ease;
+}
+
+.score-number {
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.score-label {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.score-level {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+/* 图表区域 */
+.category-chart-section,
+.daily-chart-section {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 24px;
+  border: 2px solid var(--border-color);
+  transition: background var(--transition-normal) ease;
+}
+
+.category-chart-section h3,
+.daily-chart-section h3 {
+  color: var(--text-primary);
+  margin: 0 0 20px 0;
+  font-size: 18px;
+}
+
+.chart-container {
+  margin-bottom: 20px;
+}
+
+.category-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: background var(--transition-normal) ease;
+}
+
+.category-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.category-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.category-stats {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* AI评语区域 */
+.ai-commentary-section {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-radius: 12px;
+  padding: 24px;
+  border-left: 4px solid var(--success-color);
+  transition: background var(--transition-normal) ease;
+}
+
+body[data-theme="dark"] .ai-commentary-section {
+  background: linear-gradient(135deg, #1b3d1f 0%, #2e5a2f 100%);
+}
+
+.ai-commentary-section h3 {
+  color: var(--success-color);
+  margin: 0 0 16px 0;
+  font-size: 18px;
+}
+
+.ai-commentary {
+  color: var(--text-primary);
+  line-height: 1.8;
+  font-size: 15px;
+  white-space: pre-wrap;
+}
+
+/* 警告区域 */
+.warnings-section {
+  background: var(--warning-bg);
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 4px solid var(--warning-color);
+  transition: background var(--transition-normal) ease;
+}
+
+.warnings-section h3 {
+  color: var(--warning-color);
+  margin: 0 0 12px 0;
+  font-size: 16px;
+}
+
+.warnings-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.warnings-list li {
+  color: var(--warning-color);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* 建议区域 */
+.recommendations-section {
+  background: var(--info-bg);
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 4px solid var(--info-color);
+  transition: background var(--transition-normal) ease;
+}
+
+.recommendations-section h3 {
+  color: var(--info-color);
+  margin: 0 0 12px 0;
+  font-size: 16px;
+}
+
+.recommendations-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.recommendations-list li {
+  color: var(--info-color);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* 响应式 - 周报模态框 */
+@media (max-width: 768px) {
+  .report-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .overview-value {
+    font-size: 24px;
+  }
+  
+  .score-circle {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .score-number {
+    font-size: 28px;
+  }
+  
+  .score-display {
+    flex-direction: column;
+  }
+  
+  .category-details {
+    flex-direction: column;
+  }
+  
+  .category-item {
+    justify-content: center;
+  }
+  
+  .vip-status-wrapper {
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  .btn-weekly-report {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .report-overview {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .overview-card {
+    padding: 14px;
+  }
+  
+  .overview-value {
+    font-size: 20px;
+  }
+  
+  .overview-label {
+    font-size: 12px;
+  }
+}
