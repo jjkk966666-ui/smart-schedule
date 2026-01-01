@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { authService } from './services/authService';
 import { scheduleService } from './services/scheduleService';
 import { aiService } from './services/aiService';
-import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem, AIUsageInfo, WeeklyReportData } from './types';
+import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem, AIUsageInfo, WeeklyReportData, WeeklyReportHistoryItem } from './types';
 import './App.css';
 // Recharts 图表组件
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -89,6 +89,13 @@ function App() {
   const [weeklyReportData, setWeeklyReportData] = useState<WeeklyReportData | null>(null);
   const [weeklyReportLoading, setWeeklyReportLoading] = useState(false);
   const [weeklyReportError, setWeeklyReportError] = useState('');
+
+  // 周报历史相关状态
+  const [weeklyReportHistory, setWeeklyReportHistory] = useState<WeeklyReportHistoryItem[]>([]);
+  const [loadingReportHistory, setLoadingReportHistory] = useState(false);
+  const [savingReport, setSavingReport] = useState(false);
+  const [showReportHistory, setShowReportHistory] = useState(false);
+  const [viewingHistoryReport, setViewingHistoryReport] = useState(false);
 
   // 登录/注册表单
   const [formData, setFormData] = useState({
@@ -762,10 +769,77 @@ function App() {
     }
   };
 
+  // 保存周报到历史
+  const handleSaveWeeklyReport = async () => {
+    if (!weeklyReportData || !weeklyReportData.success) return;
+
+    setSavingReport(true);
+    try {
+      await aiService.saveWeeklyReport(weeklyReportData);
+      alert('✅ 周报保存成功！');
+      // 刷新历史列表
+      loadWeeklyReportHistory();
+    } catch (error: any) {
+      alert('保存失败: ' + (error.response?.data?.error?.message || '未知错误'));
+    } finally {
+      setSavingReport(false);
+    }
+  };
+
+  // 加载周报历史列表
+  const loadWeeklyReportHistory = async () => {
+    if (!user?.isVip) return;
+    
+    setLoadingReportHistory(true);
+    try {
+      const history = await aiService.getWeeklyReportHistory(10);
+      setWeeklyReportHistory(history);
+    } catch (error) {
+      console.error('加载周报历史失败:', error);
+      setWeeklyReportHistory([]);
+    } finally {
+      setLoadingReportHistory(false);
+    }
+  };
+
+  // 查看历史周报详情
+  const handleViewHistoryReport = async (reportId: string) => {
+    setWeeklyReportLoading(true);
+    setViewingHistoryReport(true);
+    setWeeklyReportError('');
+    
+    try {
+      const data = await aiService.getWeeklyReportDetail(reportId);
+      setWeeklyReportData(data);
+      setShowReportHistory(false);
+    } catch (error: any) {
+      setWeeklyReportError(error.response?.data?.error?.message || '获取周报详情失败');
+    } finally {
+      setWeeklyReportLoading(false);
+    }
+  };
+
   const closeWeeklyReport = () => {
     setShowWeeklyReport(false);
     setWeeklyReportData(null);
     setWeeklyReportError('');
+    setShowReportHistory(false);
+    setViewingHistoryReport(false);
+  };
+
+  // 切换显示历史列表
+  const toggleReportHistory = () => {
+    if (!showReportHistory) {
+      loadWeeklyReportHistory();
+    }
+    setShowReportHistory(!showReportHistory);
+  };
+
+  // 格式化周报日期范围
+  const formatReportDateRange = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return `${start.getMonth() + 1}/${start.getDate()} - ${end.getMonth() + 1}/${end.getDate()}`;
   };
 
   // 获取效率分数颜色
@@ -1019,11 +1093,63 @@ function App() {
         <div className="modal-overlay" onClick={closeWeeklyReport}>
           <div className="modal-content weekly-report-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>📊 本周AI分析报告</h2>
-              <button className="modal-close" onClick={closeWeeklyReport}>×</button>
+              <h2>📊 {viewingHistoryReport ? '历史周报' : '本周AI分析报告'}</h2>
+              <div className="modal-header-actions">
+                {user?.isVip && (
+                  <button
+                    className="btn-report-history"
+                    onClick={toggleReportHistory}
+                    title="查看历史周报"
+                  >
+                    📜 历史
+                  </button>
+                )}
+                <button className="modal-close" onClick={closeWeeklyReport}>×</button>
+              </div>
             </div>
             
             <div className="modal-body">
+              {/* 周报历史侧边面板 */}
+              {showReportHistory && (
+                <div className="report-history-panel">
+                  <div className="report-history-header">
+                    <h3>📜 历史周报</h3>
+                    <button className="btn-close-history" onClick={() => setShowReportHistory(false)}>×</button>
+                  </div>
+                  {loadingReportHistory ? (
+                    <div className="loading-state small">
+                      <div className="spinner"></div>
+                      <p>加载中...</p>
+                    </div>
+                  ) : weeklyReportHistory.length === 0 ? (
+                    <div className="empty-history">
+                      <p>📭 暂无历史周报</p>
+                      <p className="hint">生成周报后点击"保存"即可保存历史</p>
+                    </div>
+                  ) : (
+                    <div className="report-history-list">
+                      {weeklyReportHistory.map((report) => (
+                        <div
+                          key={report.id}
+                          className="report-history-item"
+                          onClick={() => handleViewHistoryReport(report.id)}
+                        >
+                          <div className="history-item-date">
+                            📅 {formatReportDateRange(report.weekStartDate, report.weekEndDate)}
+                          </div>
+                          <div className="history-item-stats">
+                            <span>完成率: {report.completionRate.toFixed(0)}%</span>
+                            <span>效率: {report.efficiencyScore}分</span>
+                          </div>
+                          <div className="history-item-created">
+                            保存于: {formatDate(report.createdAt)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {weeklyReportLoading ? (
                 <div className="loading-state">
                   <div className="spinner"></div>
@@ -1179,6 +1305,35 @@ function App() {
                           <li key={index}>{rec}</li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                  {/* 保存周报按钮 */}
+                  {!viewingHistoryReport && (
+                    <div className="report-actions">
+                      <button
+                        className="btn-save-report"
+                        onClick={handleSaveWeeklyReport}
+                        disabled={savingReport}
+                      >
+                        {savingReport ? '⏳ 保存中...' : '💾 保存周报到历史'}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 历史周报信息 */}
+                  {viewingHistoryReport && weeklyReportData.createdAt && (
+                    <div className="history-report-info">
+                      <p>📅 保存时间: {formatDate(weeklyReportData.createdAt)}</p>
+                      <button
+                        className="btn-back-to-current"
+                        onClick={() => {
+                          setViewingHistoryReport(false);
+                          handleLoadWeeklyReport();
+                        }}
+                      >
+                        🔄 查看本周周报
+                      </button>
                     </div>
                   )}
                 </div>
