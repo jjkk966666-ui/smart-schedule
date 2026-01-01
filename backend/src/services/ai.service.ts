@@ -1512,6 +1512,191 @@ ${categoryBreakdown.map(c => `- ${c.category}: ${c.percentage}% (${c.completedCo
 
     return recommendations;
   }
+
+  // 保存周报到数据库
+  async saveWeeklyReport(userId: string, reportData: WeeklyReportData): Promise<{ success: boolean; reportId?: string; error?: string }> {
+    try {
+      // 检查VIP状态
+      const vipStatus = await this.isUserVip(userId);
+      if (!vipStatus.isVip) {
+        return {
+          success: false,
+          error: '保存周报是VIP专属功能',
+        };
+      }
+
+      const now = new Date();
+      const weekEndDate = new Date(now);
+      const weekStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // 创建周报记录
+      const report = await (prisma as any).weeklyReport.create({
+        data: {
+          userId,
+          weekStartDate,
+          weekEndDate,
+          totalSchedules: reportData.totalSchedules,
+          completedSchedules: reportData.completedSchedules,
+          incompleteSchedules: reportData.incompleteSchedules,
+          completionRate: reportData.completionRate,
+          efficiencyScore: reportData.efficiencyScore,
+          categoryBreakdown: JSON.stringify(reportData.categoryBreakdown),
+          dailyStats: JSON.stringify(reportData.dailyStats),
+          aiCommentary: reportData.aiCommentary,
+          warnings: JSON.stringify(reportData.warnings),
+          recommendations: JSON.stringify(reportData.recommendations),
+        },
+      });
+
+      return {
+        success: true,
+        reportId: report.id,
+      };
+    } catch (error: any) {
+      console.error('保存周报失败:', error);
+      return {
+        success: false,
+        error: error.message || '保存周报失败',
+      };
+    }
+  }
+
+  // 获取用户的周报历史列表
+  async getWeeklyReportHistory(userId: string, limit: number = 10): Promise<{
+    success: boolean;
+    reports?: Array<{
+      id: string;
+      weekStartDate: string;
+      weekEndDate: string;
+      completionRate: number;
+      efficiencyScore: number;
+      createdAt: string;
+    }>;
+    error?: string
+  }> {
+    try {
+      // 检查VIP状态
+      const vipStatus = await this.isUserVip(userId);
+      if (!vipStatus.isVip) {
+        return {
+          success: false,
+          error: '查看周报历史是VIP专属功能',
+        };
+      }
+
+      const reports = await (prisma as any).weeklyReport.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          weekStartDate: true,
+          weekEndDate: true,
+          completionRate: true,
+          efficiencyScore: true,
+          createdAt: true,
+        },
+      });
+
+      return {
+        success: true,
+        reports: reports.map((r: any) => ({
+          id: r.id,
+          weekStartDate: r.weekStartDate.toISOString(),
+          weekEndDate: r.weekEndDate.toISOString(),
+          completionRate: r.completionRate,
+          efficiencyScore: r.efficiencyScore,
+          createdAt: r.createdAt.toISOString(),
+        })),
+      };
+    } catch (error: any) {
+      console.error('获取周报历史失败:', error);
+      return {
+        success: false,
+        error: error.message || '获取周报历史失败',
+      };
+    }
+  }
+
+  // 获取周报详情
+  async getWeeklyReportDetail(userId: string, reportId: string): Promise<WeeklyReportData & { id?: string; createdAt?: string }> {
+    try {
+      // 检查VIP状态
+      const vipStatus = await this.isUserVip(userId);
+      if (!vipStatus.isVip) {
+        return {
+          success: false,
+          error: '查看周报详情是VIP专属功能',
+          totalSchedules: 0,
+          completedSchedules: 0,
+          incompleteSchedules: 0,
+          completionRate: 0,
+          categoryBreakdown: [],
+          dailyStats: [],
+          efficiencyScore: 0,
+          aiCommentary: '',
+          warnings: [],
+          recommendations: [],
+        };
+      }
+
+      const report = await (prisma as any).weeklyReport.findFirst({
+        where: {
+          id: reportId,
+          userId,
+        },
+      });
+
+      if (!report) {
+        return {
+          success: false,
+          error: '周报不存在或无权访问',
+          totalSchedules: 0,
+          completedSchedules: 0,
+          incompleteSchedules: 0,
+          completionRate: 0,
+          categoryBreakdown: [],
+          dailyStats: [],
+          efficiencyScore: 0,
+          aiCommentary: '',
+          warnings: [],
+          recommendations: [],
+        };
+      }
+
+      return {
+        success: true,
+        id: report.id,
+        createdAt: report.createdAt.toISOString(),
+        totalSchedules: report.totalSchedules,
+        completedSchedules: report.completedSchedules,
+        incompleteSchedules: report.incompleteSchedules,
+        completionRate: report.completionRate,
+        categoryBreakdown: JSON.parse(report.categoryBreakdown),
+        dailyStats: JSON.parse(report.dailyStats),
+        efficiencyScore: report.efficiencyScore,
+        aiCommentary: report.aiCommentary,
+        warnings: JSON.parse(report.warnings),
+        recommendations: JSON.parse(report.recommendations),
+      };
+    } catch (error: any) {
+      console.error('获取周报详情失败:', error);
+      return {
+        success: false,
+        error: error.message || '获取周报详情失败',
+        totalSchedules: 0,
+        completedSchedules: 0,
+        incompleteSchedules: 0,
+        completionRate: 0,
+        categoryBreakdown: [],
+        dailyStats: [],
+        efficiencyScore: 0,
+        aiCommentary: '',
+        warnings: [],
+        recommendations: [],
+      };
+    }
+  }
 }
 
 export default new AIService();
