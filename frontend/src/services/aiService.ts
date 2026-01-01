@@ -1,5 +1,5 @@
 import api from './api';
-import type { ConflictAnalysis, TimeRecommendation, ScheduleOptimization, AIPlanningResult } from '../types';
+import type { ConflictAnalysis, TimeRecommendation, ScheduleOptimization, AIPlanningResult, WeeklyReportData } from '../types';
 
 export const aiService = {
   async analyzeConflicts(): Promise<ConflictAnalysis> {
@@ -30,6 +30,14 @@ export const aiService = {
     const response = await api.post<{ success: boolean; data: AIPlanningResult }>(
       '/ai/analyze-planning',
       { taskDescription, preferredDuration }
+    );
+    return response.data.data;
+  },
+
+  // VIP专属：周报分析
+  async getWeeklyReport(): Promise<WeeklyReportData> {
+    const response = await api.get<{ success: boolean; data: WeeklyReportData }>(
+      '/ai/weekly-report'
     );
     return response.data.data;
   },
