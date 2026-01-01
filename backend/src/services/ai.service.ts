@@ -54,6 +54,48 @@ interface GeneratePlanResult {
   error?: string;
 }
 
+// 周报分析相关类型
+interface CategoryBreakdown {
+  category: string;
+  percentage: number;
+  hours: number;
+  completedCount: number;
+  totalCount: number;
+}
+
+interface DailyStats {
+  date: string;
+  dayName: string;
+  completed: number;
+  total: number;
+  completionRate: number;
+}
+
+interface WeeklyReportData {
+  success: boolean;
+  error?: string;
+  // 基础统计
+  totalSchedules: number;
+  completedSchedules: number;
+  incompleteSchedules: number;
+  completionRate: number;
+  // 分类统计
+  categoryBreakdown: CategoryBreakdown[];
+  // 每日统计
+  dailyStats: DailyStats[];
+  // 效率分数 (0-100)
+  efficiencyScore: number;
+  // AI评价和建议
+  aiCommentary: string;
+  warnings: string[];
+  recommendations: string[];
+  // 对比上周
+  weekOverWeekChange?: {
+    completionRateChange: number;
+    efficiencyScoreChange: number;
+  };
+}
+
 export class AIService {
   // 清理AI响应，移除思考标签和提取JSON
   private cleanAIResponse(response: string): string {
@@ -1154,6 +1196,321 @@ ${existingScheduleData.length > 0 ? JSON.stringify(existingScheduleData, null, 2
       optimizations,
       overallScore: optimizations.length === 0 ? 0.9 : 0.7,
     };
+  }
+
+  // VIP专属：生成周报分析
+  async generateWeeklyReport(userId: string): Promise<WeeklyReportData> {
+    // 检查VIP状态
+    const vipStatus = await this.isUserVip(userId);
+    if (!vipStatus.isVip) {
+      return {
+        success: false,
+        error: '周报分析是VIP专属功能，请先升级VIP',
+        totalSchedules: 0,
+        completedSchedules: 0,
+        incompleteSchedules: 0,
+        completionRate: 0,
+        categoryBreakdown: [],
+        dailyStats: [],
+        efficiencyScore: 0,
+        aiCommentary: '',
+        warnings: [],
+        recommendations: [],
+      };
+    }
+
+    const now = new Date();
+    // 获取过去7天的日程
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const schedules = await prisma.schedule.findMany({
+      where: {
+        userId,
+        startTime: {
+          gte: weekStart,
+          lte: now,
+        },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    if (schedules.length === 0) {
+      return {
+        success: true,
+        totalSchedules: 0,
+        completedSchedules: 0,
+        incompleteSchedules: 0,
+        completionRate: 0,
+        categoryBreakdown: [],
+        dailyStats: [],
+        efficiencyScore: 0,
+        aiCommentary: '本周暂无日程记录。建议开始规划您的日程，让AI帮助您提高效率！',
+        warnings: [],
+        recommendations: ['开始创建日程，记录您的任务和活动'],
+      };
+    }
+
+    // 统计基础数据
+    const totalSchedules = schedules.length;
+    const completedSchedules = schedules.filter(s => s.status === 'completed').length;
+    const incompleteSchedules = totalSchedules - completedSchedules;
+    const completionRate = Math.round((completedSchedules / totalSchedules) * 100);
+
+    // 按日期统计
+    const dailyStatsMap = new Map<string, { completed: number; total: number }>();
+    const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    
+    schedules.forEach(schedule => {
+      const dateKey = schedule.startTime.toISOString().split('T')[0];
+      if (!dailyStatsMap.has(dateKey)) {
+        dailyStatsMap.set(dateKey, { completed: 0, total: 0 });
+      }
+      const stats = dailyStatsMap.get(dateKey)!;
+      stats.total++;
+      if (schedule.status === 'completed') {
+        stats.completed++;
+      }
+    });
+
+    const dailyStats: DailyStats[] = Array.from(dailyStatsMap.entries())
+      .map(([date, stats]) => ({
+        date,
+        dayName: dayNames[new Date(date).getDay()],
+        completed: stats.completed,
+        total: stats.total,
+        completionRate: Math.round((stats.completed / stats.total) * 100),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // 按分类统计（基于日程标题关键词智能分类）
+    const categoryKeywords: { [key: string]: string[] } = {
+      '学习': ['学习', '复习', '看书', '阅读', '课程', '培训', '考试', '作业', '研究', '背单词', '刷题', '考证'],
+      '工作': ['工作', '会议', '项目', '报告', '开会', '汇报', '加班', '出差', '客户', '面试'],
+      '运动健身': ['运动', '健身', '跑步', '游泳', '篮球', '足球', '瑜伽', '锻炼', '散步'],
+      '娱乐休闲': ['娱乐', '游戏', '电影', '电视', '休息', '玩', '聚会', '派对', '旅游', '逛街'],
+      '社交': ['社交', '朋友', '聚餐', '约会', '饭局', '见面', '拜访'],
+      '生活事务': ['购物', '买菜', '做饭', '打扫', '洗衣', '家务', '预约', '取快递'],
+      '其他': [],
+    };
+
+    const categoryStats: { [key: string]: { count: number; completedCount: number; totalHours: number } } = {};
+    Object.keys(categoryKeywords).forEach(cat => {
+      categoryStats[cat] = { count: 0, completedCount: 0, totalHours: 0 };
+    });
+
+    schedules.forEach(schedule => {
+      const title = schedule.title.toLowerCase();
+      const description = (schedule.description || '').toLowerCase();
+      const text = title + ' ' + description;
+      
+      let matched = false;
+      for (const [category, keywords] of Object.entries(categoryKeywords)) {
+        if (category === '其他') continue;
+        if (keywords.some(kw => text.includes(kw))) {
+          categoryStats[category].count++;
+          if (schedule.status === 'completed') {
+            categoryStats[category].completedCount++;
+          }
+          const hours = (schedule.endTime.getTime() - schedule.startTime.getTime()) / (1000 * 60 * 60);
+          categoryStats[category].totalHours += hours;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        categoryStats['其他'].count++;
+        if (schedule.status === 'completed') {
+          categoryStats['其他'].completedCount++;
+        }
+        const hours = (schedule.endTime.getTime() - schedule.startTime.getTime()) / (1000 * 60 * 60);
+        categoryStats['其他'].totalHours += hours;
+      }
+    });
+
+    const totalHours = Object.values(categoryStats).reduce((sum, stat) => sum + stat.totalHours, 0);
+    const categoryBreakdown: CategoryBreakdown[] = Object.entries(categoryStats)
+      .filter(([_, stats]) => stats.count > 0)
+      .map(([category, stats]) => ({
+        category,
+        percentage: Math.round((stats.count / totalSchedules) * 100),
+        hours: Math.round(stats.totalHours * 10) / 10,
+        completedCount: stats.completedCount,
+        totalCount: stats.count,
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
+
+    // 计算效率分数 (基于完成率、优先级完成情况、时间利用等)
+    let efficiencyScore = completionRate;
+    
+    // 高优先级任务完成加分
+    const highPrioritySchedules = schedules.filter(s => s.priority === 'high' || s.priority === 'urgent');
+    const highPriorityCompleted = highPrioritySchedules.filter(s => s.status === 'completed').length;
+    if (highPrioritySchedules.length > 0) {
+      const highPriorityRate = highPriorityCompleted / highPrioritySchedules.length;
+      efficiencyScore = Math.round(efficiencyScore * 0.6 + highPriorityRate * 100 * 0.4);
+    }
+
+    // 准备AI分析数据
+    const scheduleData = schedules.map(s => ({
+      title: s.title,
+      description: s.description,
+      startTime: s.startTime.toISOString(),
+      endTime: s.endTime.toISOString(),
+      priority: s.priority,
+      status: s.status,
+    }));
+
+    // 获取AI客户端
+    const { client: openaiClient, model } = await this.getOpenAIClientForUser(userId);
+    
+    let aiCommentary = '';
+    let warnings: string[] = [];
+    let recommendations: string[] = [];
+
+    if (openaiClient) {
+      const prompt = `你是一个直言不讳的时间管理顾问，请分析用户过去一周的日程安排情况，并给出坦诚、犀利的评价和建议。
+
+用户过去7天的日程数据:
+${JSON.stringify(scheduleData, null, 2)}
+
+统计摘要:
+- 总日程数: ${totalSchedules}
+- 已完成: ${completedSchedules}
+- 未完成: ${incompleteSchedules}
+- 完成率: ${completionRate}%
+- 效率分数: ${efficiencyScore}/100
+
+分类统计:
+${categoryBreakdown.map(c => `- ${c.category}: ${c.percentage}% (${c.completedCount}/${c.totalCount}完成, ${c.hours}小时)`).join('\n')}
+
+请以JSON格式返回你的分析:
+{
+  "commentary": "整体评价（要直白、犀利，指出问题所在，比如'你这周在娱乐上花的时间太多，导致学习任务只完成了一半'这样的风格）",
+  "warnings": ["警告1", "警告2"],
+  "recommendations": ["具体建议1", "具体建议2", "具体建议3"]
+}
+
+要求:
+1. commentary要直接点出用户的问题，不要含糊其辞
+2. 如果某类任务完成率很低，要明确批评
+3. 如果时间分配不合理（如娱乐>>学习），要直接指出
+4. warnings是需要立即关注的问题
+5. recommendations是具体可执行的改进建议
+6. 语气可以严厉，但要有建设性
+
+只返回JSON，不要其他内容。`;
+
+      try {
+        const completion = await openaiClient.chat.completions.create({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 1000,
+        });
+
+        const aiResponse = completion.choices[0]?.message?.content || '';
+        
+        interface AICommentaryResult {
+          commentary?: string;
+          warnings?: string[];
+          recommendations?: string[];
+        }
+
+        const { data: result, parsed } = this.safeParseJSON<AICommentaryResult>(aiResponse, {});
+        
+        if (parsed) {
+          aiCommentary = result.commentary || '';
+          warnings = result.warnings || [];
+          recommendations = result.recommendations || [];
+        } else {
+          // 如果解析失败，使用提取的可读文本
+          aiCommentary = this.extractReadableText(aiResponse);
+        }
+      } catch (error) {
+        console.error('AI周报分析失败:', error);
+        aiCommentary = this.generateFallbackCommentary(completionRate, categoryBreakdown);
+        warnings = this.generateFallbackWarnings(completionRate, categoryBreakdown);
+        recommendations = this.generateFallbackRecommendations(completionRate, categoryBreakdown);
+      }
+    } else {
+      // 没有AI配置时使用基础分析
+      aiCommentary = this.generateFallbackCommentary(completionRate, categoryBreakdown);
+      warnings = this.generateFallbackWarnings(completionRate, categoryBreakdown);
+      recommendations = this.generateFallbackRecommendations(completionRate, categoryBreakdown);
+    }
+
+    return {
+      success: true,
+      totalSchedules,
+      completedSchedules,
+      incompleteSchedules,
+      completionRate,
+      categoryBreakdown,
+      dailyStats,
+      efficiencyScore,
+      aiCommentary,
+      warnings,
+      recommendations,
+    };
+  }
+
+  // 生成备用评价（当AI不可用时）
+  private generateFallbackCommentary(completionRate: number, categories: CategoryBreakdown[]): string {
+    const parts: string[] = [];
+    
+    if (completionRate >= 80) {
+      parts.push(`本周完成率${completionRate}%，表现不错！继续保持。`);
+    } else if (completionRate >= 50) {
+      parts.push(`本周完成率${completionRate}%，还有提升空间。`);
+    } else {
+      parts.push(`本周完成率仅${completionRate}%，需要认真反思时间管理问题。`);
+    }
+
+    const topCategory = categories[0];
+    if (topCategory) {
+      parts.push(`时间主要花在"${topCategory.category}"上，占比${topCategory.percentage}%。`);
+    }
+
+    const lowCompletionCategories = categories.filter(c => c.totalCount > 0 && c.completedCount / c.totalCount < 0.5);
+    if (lowCompletionCategories.length > 0) {
+      parts.push(`"${lowCompletionCategories.map(c => c.category).join('、')}"类任务完成率较低，需要关注。`);
+    }
+
+    return parts.join(' ');
+  }
+
+  // 生成备用警告
+  private generateFallbackWarnings(completionRate: number, categories: CategoryBreakdown[]): string[] {
+    const warnings: string[] = [];
+    
+    if (completionRate < 50) {
+      warnings.push('完成率过低，建议减少日程数量，专注于重要任务');
+    }
+
+    const learningCategory = categories.find(c => c.category === '学习');
+    const entertainmentCategory = categories.find(c => c.category === '娱乐休闲');
+    
+    if (learningCategory && entertainmentCategory && entertainmentCategory.hours > learningCategory.hours * 2) {
+      warnings.push('娱乐时间远超学习时间，请注意时间分配');
+    }
+
+    return warnings;
+  }
+
+  // 生成备用建议
+  private generateFallbackRecommendations(completionRate: number, categories: CategoryBreakdown[]): string[] {
+    const recommendations: string[] = [];
+    
+    if (completionRate < 70) {
+      recommendations.push('尝试将大任务拆分成小任务，更容易完成');
+      recommendations.push('为每个任务设置具体的截止时间');
+    }
+    
+    recommendations.push('每天早上花5分钟规划当天的重点任务');
+    recommendations.push('使用番茄工作法提高专注度');
+
+    return recommendations;
   }
 }
 
