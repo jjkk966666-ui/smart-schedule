@@ -2,11 +2,16 @@ import { useState, useEffect } from 'react';
 import { authService } from './services/authService';
 import { scheduleService } from './services/scheduleService';
 import { aiService } from './services/aiService';
-import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem, AIUsageInfo } from './types';
+import type { Schedule, CreateScheduleData, User, ScheduleStats, TimeRecommendation, AIPlanningResult, AISuggestion, GeneratePlanResult, PlanningHistoryItem, AIUsageInfo, WeeklyReportData } from './types';
 import './App.css';
+// Recharts 图表组件
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // 主题类型
 type ThemeMode = 'light' | 'dark';
+
+// 图表颜色配置
+const CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -78,6 +83,12 @@ function App() {
 
   // AI使用情况
   const [aiUsage, setAiUsage] = useState<AIUsageInfo | null>(null);
+
+  // VIP周报分析
+  const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [weeklyReportData, setWeeklyReportData] = useState<WeeklyReportData | null>(null);
+  const [weeklyReportLoading, setWeeklyReportLoading] = useState(false);
+  const [weeklyReportError, setWeeklyReportError] = useState('');
 
   // 登录/注册表单
   const [formData, setFormData] = useState({
@@ -728,6 +739,51 @@ function App() {
     setVipSuccess('');
   };
 
+  // VIP周报分析
+  const handleLoadWeeklyReport = async () => {
+    if (!user?.isVip) {
+      setWeeklyReportError('周报分析是VIP专属功能，请先升级VIP');
+      setShowWeeklyReport(true);
+      return;
+    }
+
+    setShowWeeklyReport(true);
+    setWeeklyReportLoading(true);
+    setWeeklyReportError('');
+    setWeeklyReportData(null);
+
+    try {
+      const data = await aiService.getWeeklyReport();
+      setWeeklyReportData(data);
+    } catch (error: any) {
+      setWeeklyReportError(error.response?.data?.error?.message || '获取周报失败');
+    } finally {
+      setWeeklyReportLoading(false);
+    }
+  };
+
+  const closeWeeklyReport = () => {
+    setShowWeeklyReport(false);
+    setWeeklyReportData(null);
+    setWeeklyReportError('');
+  };
+
+  // 获取效率分数颜色
+  const getEfficiencyScoreColor = (score: number) => {
+    if (score >= 80) return '#4caf50';
+    if (score >= 60) return '#ff9800';
+    return '#f44336';
+  };
+
+  // 获取效率分数等级
+  const getEfficiencyScoreLevel = (score: number) => {
+    if (score >= 90) return '优秀';
+    if (score >= 80) return '良好';
+    if (score >= 60) return '一般';
+    if (score >= 40) return '需改进';
+    return '较差';
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="auth-container">
@@ -877,9 +933,18 @@ function App() {
           {/* VIP状态显示 */}
           <div className="vip-status-wrapper">
             {user?.isVip ? (
-              <span className="vip-badge active" title={`VIP剩余 ${user.vipRemainingHours} 小时`}>
-                👑 VIP ({user.vipRemainingHours}h)
-              </span>
+              <>
+                <span className="vip-badge active" title={`VIP剩余 ${user.vipRemainingHours} 小时`}>
+                  👑 VIP ({user.vipRemainingHours}h)
+                </span>
+                <button
+                  className="btn-weekly-report"
+                  onClick={handleLoadWeeklyReport}
+                  title="查看本周AI分析报告"
+                >
+                  📊 周报
+                </button>
+              </>
             ) : (
               <button className="btn-vip" onClick={() => setShowVipModal(true)}>
                 👑 兑换VIP
@@ -944,6 +1009,180 @@ function App() {
                   <p className="hint">兑换新通行证将延长24小时有效期</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIP周报分析模态框 */}
+      {showWeeklyReport && (
+        <div className="modal-overlay" onClick={closeWeeklyReport}>
+          <div className="modal-content weekly-report-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📊 本周AI分析报告</h2>
+              <button className="modal-close" onClick={closeWeeklyReport}>×</button>
+            </div>
+            
+            <div className="modal-body">
+              {weeklyReportLoading ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>AI正在分析您的一周日程数据...</p>
+                </div>
+              ) : weeklyReportError ? (
+                <div className="error-state">
+                  <p>❌ {weeklyReportError}</p>
+                  {!user?.isVip && (
+                    <button
+                      className="btn-upgrade-vip"
+                      onClick={() => { closeWeeklyReport(); setShowVipModal(true); }}
+                    >
+                      👑 升级VIP解锁周报
+                    </button>
+                  )}
+                </div>
+              ) : weeklyReportData ? (
+                <div className="weekly-report-content">
+                  {/* 概览统计 */}
+                  <div className="report-overview">
+                    <div className="overview-card">
+                      <div className="overview-value">{weeklyReportData.totalSchedules}</div>
+                      <div className="overview-label">总日程数</div>
+                    </div>
+                    <div className="overview-card completed">
+                      <div className="overview-value">{weeklyReportData.completedSchedules}</div>
+                      <div className="overview-label">已完成</div>
+                    </div>
+                    <div className="overview-card incomplete">
+                      <div className="overview-value">{weeklyReportData.incompleteSchedules}</div>
+                      <div className="overview-label">未完成</div>
+                    </div>
+                    <div className="overview-card rate">
+                      <div className="overview-value">{weeklyReportData.completionRate.toFixed(1)}%</div>
+                      <div className="overview-label">完成率</div>
+                    </div>
+                  </div>
+
+                  {/* 效率评分 */}
+                  <div className="efficiency-score-section">
+                    <h3>🎯 效率评分</h3>
+                    <div className="score-display">
+                      <div
+                        className="score-circle"
+                        style={{ borderColor: getEfficiencyScoreColor(weeklyReportData.efficiencyScore) }}
+                      >
+                        <span
+                          className="score-number"
+                          style={{ color: getEfficiencyScoreColor(weeklyReportData.efficiencyScore) }}
+                        >
+                          {weeklyReportData.efficiencyScore}
+                        </span>
+                        <span className="score-label">分</span>
+                      </div>
+                      <div className="score-level">
+                        等级：<strong style={{ color: getEfficiencyScoreColor(weeklyReportData.efficiencyScore) }}>
+                          {getEfficiencyScoreLevel(weeklyReportData.efficiencyScore)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 分类占比饼图 */}
+                  {weeklyReportData.categoryBreakdown && weeklyReportData.categoryBreakdown.length > 0 && (
+                    <div className="category-chart-section">
+                      <h3>📈 时间分配分析</h3>
+                      <div className="chart-container">
+                        <ResponsiveContainer width="100%" height={250}>
+                          <PieChart>
+                            <Pie
+                              data={weeklyReportData.categoryBreakdown}
+                              dataKey="percentage"
+                              nameKey="category"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                              label={({ name, percent }: { name?: string; percent?: number }) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
+                            >
+                              {weeklyReportData.categoryBreakdown.map((_, index) => (
+                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value, name) => [`${(typeof value === 'number' ? value : 0).toFixed(1)}%`, name as string]}
+                            />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="category-details">
+                        {weeklyReportData.categoryBreakdown.map((cat, index) => (
+                          <div key={cat.category} className="category-item">
+                            <span
+                              className="category-color"
+                              style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                            />
+                            <span className="category-name">{cat.category}</span>
+                            <span className="category-stats">
+                              {cat.hours.toFixed(1)}h · {cat.completedCount}/{cat.totalCount}完成
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 每日完成情况柱状图 */}
+                  {weeklyReportData.dailyStats && weeklyReportData.dailyStats.length > 0 && (
+                    <div className="daily-chart-section">
+                      <h3>📅 每日完成情况</h3>
+                      <div className="chart-container">
+                        <ResponsiveContainer width="100%" height={200}>
+                          <BarChart data={weeklyReportData.dailyStats}>
+                            <XAxis dataKey="date" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="completed" name="已完成" fill="#4caf50" />
+                            <Bar dataKey="total" name="总数" fill="#2196f3" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI评语 */}
+                  <div className="ai-commentary-section">
+                    <h3>🤖 AI点评</h3>
+                    <div className="ai-commentary">
+                      {weeklyReportData.aiCommentary}
+                    </div>
+                  </div>
+
+                  {/* 警告提示 */}
+                  {weeklyReportData.warnings && weeklyReportData.warnings.length > 0 && (
+                    <div className="warnings-section">
+                      <h3>⚠️ 需要注意</h3>
+                      <ul className="warnings-list">
+                        {weeklyReportData.warnings.map((warning, index) => (
+                          <li key={index}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* 改进建议 */}
+                  {weeklyReportData.recommendations && weeklyReportData.recommendations.length > 0 && (
+                    <div className="recommendations-section">
+                      <h3>💡 改进建议</h3>
+                      <ul className="recommendations-list">
+                        {weeklyReportData.recommendations.map((rec, index) => (
+                          <li key={index}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
