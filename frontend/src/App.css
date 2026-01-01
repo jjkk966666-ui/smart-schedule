@@ -3023,3 +3023,238 @@ body[data-theme="dark"] .ai-commentary-section {
     font-size: 12px;
   }
 }
+
+/* 周报历史保存功能样式 */
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-report-history {
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-report-history:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.btn-report-history.active {
+  background: var(--primary-color);
+  color: var(--text-inverse);
+  border-color: var(--primary-color);
+}
+
+/* 周报历史面板 */
+.report-history-panel {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 2px solid var(--border-color);
+  animation: slideDown 0.3s ease;
+  transition: background var(--transition-normal) ease;
+}
+
+.report-history-panel h4 {
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.report-history-item {
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.report-history-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
+}
+
+.report-history-item-info {
+  flex: 1;
+}
+
+.report-history-item-date {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.report-history-item-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.report-history-item-stats span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.report-history-item-created {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.report-history-empty {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--text-muted);
+}
+
+.report-history-empty p {
+  margin: 8px 0;
+}
+
+.report-history-loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+}
+
+/* 保存周报按钮 */
+.btn-save-report {
+  display: block;
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  margin-top: 24px;
+}
+
+.btn-save-report:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+}
+
+.btn-save-report:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-save-report.saved {
+  background: linear-gradient(135deg, #9e9e9e 0%, #bdbdbd 100%);
+  cursor: default;
+}
+
+/* 历史报告信息提示 */
+.history-report-info {
+  background: var(--info-bg);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--info-color);
+  animation: slideDown 0.3s ease;
+  transition: background var(--transition-normal) ease;
+}
+
+.history-report-info p {
+  color: var(--info-color);
+  margin: 0;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-back-current {
+  padding: 8px 16px;
+  background: var(--info-color);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition-normal);
+}
+
+.btn-back-current:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* 响应式 - 周报历史 */
+@media (max-width: 768px) {
+  .modal-header-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .btn-report-history {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .report-history-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .report-history-item-created {
+    text-align: left;
+  }
+  
+  .report-history-item-stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .history-report-info {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .btn-back-current {
+    width: 100%;
+  }
+}

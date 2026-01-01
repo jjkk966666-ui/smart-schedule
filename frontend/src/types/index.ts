@@ -334,4 +334,27 @@ export interface WeeklyReportData {
     completionRateChange: number;
     efficiencyScoreChange: number;
   };
+  // 保存的周报额外字段
+  id?: string;
+  createdAt?: string;
+}
+
+// 周报历史列表项
+export interface WeeklyReportHistoryItem {
+  id: string;
+  weekStartDate: string;
+  weekEndDate: string;
+  completionRate: number;
+  efficiencyScore: number;
+  createdAt: string;
+}
+
+// 周报历史列表响应
+export interface WeeklyReportHistoryResponse {
+  reports: WeeklyReportHistoryItem[];
+}
+
+// 保存周报响应
+export interface SaveWeeklyReportResponse {
+  reportId: string;
 }

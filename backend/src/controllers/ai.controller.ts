@@ -92,6 +92,88 @@ export class AIController {
       return next(error);
     }
   }
+
+  // VIP专属：保存周报
+  async saveWeeklyReport(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const reportData = req.body;
+      
+      if (!reportData || typeof reportData.totalSchedules !== 'number') {
+        return res.status(400).json({
+          success: false,
+          error: { message: '无效的周报数据' },
+        });
+      }
+
+      const result = await aiService.saveWeeklyReport(req.user!.userId, reportData);
+      
+      if (!result.success) {
+        return res.status(result.error?.includes('VIP') ? 403 : 500).json({
+          success: false,
+          error: { message: result.error },
+        });
+      }
+      
+      return res.json({
+        success: true,
+        data: { reportId: result.reportId },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  // VIP专属：获取周报历史列表
+  async getWeeklyReportHistory(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const result = await aiService.getWeeklyReportHistory(req.user!.userId, limit);
+      
+      if (!result.success) {
+        return res.status(result.error?.includes('VIP') ? 403 : 500).json({
+          success: false,
+          error: { message: result.error },
+        });
+      }
+      
+      return res.json({
+        success: true,
+        data: { reports: result.reports },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  // VIP专属：获取周报详情
+  async getWeeklyReportDetail(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { reportId } = req.params;
+      
+      if (!reportId) {
+        return res.status(400).json({
+          success: false,
+          error: { message: '缺少周报ID' },
+        });
+      }
+
+      const result = await aiService.getWeeklyReportDetail(req.user!.userId, reportId);
+      
+      if (!result.success) {
+        return res.status(result.error?.includes('VIP') ? 403 : 500).json({
+          success: false,
+          error: { message: result.error },
+        });
+      }
+      
+      return res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
 }
 
 export default new AIController();
