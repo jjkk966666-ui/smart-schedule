@@ -292,3 +292,46 @@ export interface ScheduleStats {
   thisWeek: number;
   highPriority: number;
 }
+
+// VIP周报分析相关类型
+export interface CategoryBreakdown {
+  category: string;
+  percentage: number;
+  hours: number;
+  completedCount: number;
+  totalCount: number;
+  [key: string]: string | number;  // 添加索引签名以兼容 Recharts 的 ChartDataInput 类型
+}
+
+export interface DailyStats {
+  date: string;
+  dayName: string;
+  completed: number;
+  total: number;
+  completionRate: number;
+}
+
+export interface WeeklyReportData {
+  success: boolean;
+  error?: string;
+  // 基础统计
+  totalSchedules: number;
+  completedSchedules: number;
+  incompleteSchedules: number;
+  completionRate: number;
+  // 分类统计
+  categoryBreakdown: CategoryBreakdown[];
+  // 每日统计
+  dailyStats: DailyStats[];
+  // 效率分数 (0-100)
+  efficiencyScore: number;
+  // AI评价和建议
+  aiCommentary: string;
+  warnings: string[];
+  recommendations: string[];
+  // 对比上周
+  weekOverWeekChange?: {
+    completionRateChange: number;
+    efficiencyScoreChange: number;
+  };
+}

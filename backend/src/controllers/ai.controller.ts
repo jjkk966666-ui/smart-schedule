@@ -71,6 +71,27 @@ export class AIController {
       return next(error);
     }
   }
+
+  // VIP专属：周报分析
+  async weeklyReport(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await aiService.generateWeeklyReport(req.user!.userId);
+      
+      if (!result.success) {
+        return res.status(result.error?.includes('VIP') ? 403 : 500).json({
+          success: false,
+          error: { message: result.error },
+        });
+      }
+      
+      return res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
 }
 
 export default new AIController();
