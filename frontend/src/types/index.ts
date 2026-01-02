@@ -292,3 +292,58 @@ export interface ScheduleStats {
   thisWeek: number;
   highPriority: number;
 }
+
+// VIP周报分析相关类型
+export interface CategoryBreakdown {
+  [key: string]: string | number;
+  category: string;
+  percentage: number;
+  hours: number;
+  completedCount: number;
+  totalCount: number;
+}
+
+export interface DailyStats {
+  [key: string]: string | number;
+  date: string;
+  completed: number;
+  total: number;
+}
+
+export interface WeeklyReportData {
+  success: boolean;
+  error?: string;
+  totalSchedules: number;
+  completedSchedules: number;
+  incompleteSchedules: number;
+  completionRate: number;
+  efficiencyScore: number;
+  categoryBreakdown?: CategoryBreakdown[];
+  dailyStats?: DailyStats[];
+  aiCommentary?: string;
+  warnings?: string[];
+  recommendations?: string[];
+  weekStartDate?: string;
+  weekEndDate?: string;
+  createdAt?: string;
+}
+
+export interface WeeklyReportHistoryItem {
+  id: string;
+  weekStartDate: string;
+  weekEndDate: string;
+  completionRate: number;
+  efficiencyScore: number;
+  createdAt: string;
+}
+
+export interface WeeklyReportHistoryResponse {
+  items: WeeklyReportHistoryItem[];
+  total: number;
+}
+
+export interface SaveWeeklyReportResponse {
+  success: boolean;
+  id: string;
+  message?: string;
+}

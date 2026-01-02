@@ -3258,3 +3258,111 @@ body[data-theme="dark"] .ai-commentary-section {
     width: 100%;
   }
 }
+
+/* 周报确认界面样式 */
+.report-confirm-section {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.report-confirm-section h3 {
+  color: var(--text-primary);
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.report-confirm-section > p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.confirm-warning {
+  background: var(--warning-bg);
+  color: var(--warning-color);
+  padding: 14px 20px;
+  border-radius: 10px;
+  margin-bottom: 28px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--warning-color);
+  transition: background var(--transition-normal) ease;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-generate-report {
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-generate-report:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.btn-view-history {
+  padding: 16px 32px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-view-history:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 响应式 - 周报确认界面 */
+@media (max-width: 768px) {
+  .report-confirm-section {
+    padding: 30px 16px;
+  }
+  
+  .report-confirm-section h3 {
+    font-size: 20px;
+  }
+  
+  .confirm-actions {
+    flex-direction: column;
+  }
+  
+  .btn-generate-report,
+  .btn-view-history {
+    width: 100%;
+    justify-content: center;
+  }
+}

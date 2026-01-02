@@ -12,26 +12,26 @@ datasource db {
 
 // 用户表
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String   @map("password_hash")
-  name          String
-  avatarUrl     String?  @map("avatar_url")
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  avatarUrl    String?   @map("avatar_url")
   // AI配置（已废弃，保留兼容）
-  aiApiKey      String?  @map("ai_api_key")
-  aiApiBaseUrl  String?  @map("ai_api_base_url")
-  aiModel       String?  @map("ai_model")
+  aiApiKey     String?   @map("ai_api_key")
+  aiApiBaseUrl String?   @map("ai_api_base_url")
+  aiModel      String?   @map("ai_model")
   // VIP相关字段
-  vipExpiresAt  DateTime? @map("vip_expires_at")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  vipExpiresAt DateTime? @map("vip_expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // 关系
-  schedules        Schedule[]
-  refreshTokens    RefreshToken[]
-  planningHistory  PlanningHistory[]
-  aiUsageRecords   AIUsageRecord[]
-  weeklyReports    WeeklyReport[]
+  schedules       Schedule[]
+  refreshTokens   RefreshToken[]
+  planningHistory PlanningHistory[]
+  aiUsageRecords  AIUsageRecord[]
+  weeklyReports   WeeklyReport[]
 
   @@map("users")
 }
@@ -53,7 +53,7 @@ model Schedule {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // 关系
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   scheduleTags  ScheduleTag[]
   aiSuggestions AISuggestion[]
 
@@ -92,7 +92,7 @@ model AISuggestion {
   scheduleId     String   @map("schedule_id")
   suggestionType String   @map("suggestion_type") // conflict, optimization, recommendation
   content        String
-  metadata       String?  // JSON存储为字符串
+  metadata       String? // JSON存储为字符串
   createdAt      DateTime @default(now()) @map("created_at")
 
   // 关系
@@ -119,9 +119,9 @@ model RefreshToken {
 model PlanningHistory {
   id            String   @id @default(uuid())
   userId        String   @map("user_id")
-  description   String   // 用户的输入描述
+  description   String // 用户的输入描述
   generatedPlan String   @map("generated_plan") // JSON: 生成的日程列表及理由
-  summary       String?  // AI的规划摘要
+  summary       String? // AI的规划摘要
   savedCount    Int      @default(0) @map("saved_count") // 实际保存的日程数量
   createdAt     DateTime @default(now()) @map("created_at")
 
@@ -133,28 +133,52 @@ model PlanningHistory {
 
 // VIP通行证表
 model VipPassport {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  isUsed    Boolean  @default(false) @map("is_used")
-  usedBy    String?  @map("used_by")
+  id        String    @id @default(uuid())
+  code      String    @unique
+  isUsed    Boolean   @default(false) @map("is_used")
+  usedBy    String?   @map("used_by")
   usedAt    DateTime? @map("used_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   @@map("vip_passports")
 }
 
 // AI使用记录表（用于每日限制）
 model AIUsageRecord {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  usageDate String   @map("usage_date") // 格式：YYYY-MM-DD
-  usageCount Int     @default(0) @map("usage_count")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  usageDate  String   @map("usage_date") // 格式：YYYY-MM-DD
+  usageCount Int      @default(0) @map("usage_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   // 关系
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, usageDate])
   @@map("ai_usage_records")
+}
+
+// 周报表（VIP专属功能）
+model WeeklyReport {
+  id                  String   @id @default(uuid())
+  userId              String   @map("user_id")
+  weekStartDate       DateTime @map("week_start_date")
+  weekEndDate         DateTime @map("week_end_date")
+  totalSchedules      Int      @map("total_schedules")
+  completedSchedules  Int      @map("completed_schedules")
+  incompleteSchedules Int      @map("incomplete_schedules")
+  completionRate      Int      @map("completion_rate")
+  efficiencyScore     Int      @map("efficiency_score")
+  categoryBreakdown   String   @map("category_breakdown") // JSON字符串
+  dailyStats          String   @map("daily_stats") // JSON字符串
+  aiCommentary        String   @map("ai_commentary")
+  warnings            String // JSON字符串
+  recommendations     String // JSON字符串
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  // 关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("weekly_reports")
 }

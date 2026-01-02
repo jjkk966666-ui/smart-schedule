@@ -6,7 +6,6 @@ import type {
   AIPlanningResult,
   WeeklyReportData,
   WeeklyReportHistoryItem,
-  WeeklyReportHistoryResponse,
   SaveWeeklyReportResponse
 } from '../types';
 
@@ -39,6 +38,40 @@ export const aiService = {
     const response = await api.post<{ success: boolean; data: AIPlanningResult }>(
       '/ai/analyze-planning',
       { taskDescription, preferredDuration }
+    );
+    return response.data.data;
+  },
+
+  // VIP周报分析 - 获取本周周报
+  async getWeeklyReport(): Promise<WeeklyReportData> {
+    const response = await api.get<{ success: boolean; data: WeeklyReportData }>(
+      '/ai/weekly-report'
+    );
+    return response.data.data;
+  },
+
+  // VIP周报分析 - 保存周报到历史
+  async saveWeeklyReport(reportData: WeeklyReportData): Promise<SaveWeeklyReportResponse> {
+    const response = await api.post<{ success: boolean; data: SaveWeeklyReportResponse }>(
+      '/ai/weekly-report/save',
+      reportData
+    );
+    return response.data.data;
+  },
+
+  // VIP周报分析 - 获取周报历史列表
+  async getWeeklyReportHistory(limit: number = 10): Promise<WeeklyReportHistoryItem[]> {
+    const response = await api.get<{ success: boolean; data: WeeklyReportHistoryItem[] }>(
+      '/ai/weekly-report/history',
+      { params: { limit } }
+    );
+    return response.data.data;
+  },
+
+  // VIP周报分析 - 获取周报详情
+  async getWeeklyReportDetail(reportId: string): Promise<WeeklyReportData> {
+    const response = await api.get<{ success: boolean; data: WeeklyReportData }>(
+      `/ai/weekly-report/${reportId}`
     );
     return response.data.data;
   },

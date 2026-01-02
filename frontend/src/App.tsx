@@ -96,6 +96,9 @@ function App() {
   const [savingReport, setSavingReport] = useState(false);
   const [showReportHistory, setShowReportHistory] = useState(false);
   const [viewingHistoryReport, setViewingHistoryReport] = useState(false);
+  
+  // 周报确认界面状态（避免自动调用AI）
+  const [showReportConfirm, setShowReportConfirm] = useState(true);
 
   // 登录/注册表单
   const [formData, setFormData] = useState({
@@ -746,15 +749,30 @@ function App() {
     setVipSuccess('');
   };
 
-  // VIP周报分析
-  const handleLoadWeeklyReport = async () => {
+  // VIP周报分析 - 打开周报界面（不自动生成）
+  const handleOpenWeeklyReport = () => {
     if (!user?.isVip) {
       setWeeklyReportError('周报分析是VIP专属功能，请先升级VIP');
       setShowWeeklyReport(true);
+      setShowReportConfirm(false);
       return;
     }
 
+    // 重置状态，显示确认界面
     setShowWeeklyReport(true);
+    setShowReportConfirm(true);
+    setWeeklyReportData(null);
+    setWeeklyReportError('');
+    setViewingHistoryReport(false);
+    setShowReportHistory(false);
+    
+    // 预加载历史记录
+    loadWeeklyReportHistory();
+  };
+
+  // 实际生成周报（用户确认后调用）
+  const handleGenerateWeeklyReport = async () => {
+    setShowReportConfirm(false);
     setWeeklyReportLoading(true);
     setWeeklyReportError('');
     setWeeklyReportData(null);
@@ -825,6 +843,7 @@ function App() {
     setWeeklyReportError('');
     setShowReportHistory(false);
     setViewingHistoryReport(false);
+    setShowReportConfirm(true);
   };
 
   // 切换显示历史列表
@@ -1013,7 +1032,7 @@ function App() {
                 </span>
                 <button
                   className="btn-weekly-report"
-                  onClick={handleLoadWeeklyReport}
+                  onClick={handleOpenWeeklyReport}
                   title="查看本周AI分析报告"
                 >
                   📊 周报
@@ -1150,7 +1169,44 @@ function App() {
                   )}
                 </div>
               )}
-              {weeklyReportLoading ? (
+              
+              {/* 确认界面 - 让用户选择生成新周报还是查看历史 */}
+              {showReportConfirm && !weeklyReportLoading && !weeklyReportData && !weeklyReportError ? (
+                <div className="report-confirm-section">
+                  <div className="confirm-icon">📊</div>
+                  <h3>本周AI分析报告</h3>
+                  <p className="confirm-description">
+                    生成周报将使用AI分析您过去7天的日程数据，提供完成率统计、效率评分和改进建议。
+                  </p>
+                  <div className="confirm-warning">
+                    ⚠️ 生成周报会消耗AI调用次数
+                  </div>
+                  <div className="confirm-actions">
+                    <button
+                      className="btn-generate-report"
+                      onClick={handleGenerateWeeklyReport}
+                    >
+                      🚀 生成本周周报
+                    </button>
+                    <button
+                      className="btn-view-history"
+                      onClick={() => {
+                        setShowReportConfirm(false);
+                        setShowReportHistory(true);
+                      }}
+                    >
+                      📜 查看历史周报
+                    </button>
+                  </div>
+                  
+                  {/* 快速预览历史周报数量 */}
+                  {weeklyReportHistory.length > 0 && (
+                    <div className="history-preview">
+                      <p>📚 您有 {weeklyReportHistory.length} 份历史周报</p>
+                    </div>
+                  )}
+                </div>
+              ) : weeklyReportLoading ? (
                 <div className="loading-state">
                   <div className="spinner"></div>
                   <p>AI正在分析您的一周日程数据...</p>
@@ -1329,10 +1385,11 @@ function App() {
                         className="btn-back-to-current"
                         onClick={() => {
                           setViewingHistoryReport(false);
-                          handleLoadWeeklyReport();
+                          setShowReportConfirm(true);
+                          setWeeklyReportData(null);
                         }}
                       >
-                        🔄 查看本周周报
+                        🔙 返回
                       </button>
                     </div>
                   )}
