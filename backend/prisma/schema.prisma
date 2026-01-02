@@ -158,27 +158,3 @@ model AIUsageRecord {
   @@unique([userId, usageDate])
   @@map("ai_usage_records")
 }
-
-// 周报历史表
-model WeeklyReport {
-  id                  String   @id @default(uuid())
-  userId              String   @map("user_id")
-  weekStartDate       DateTime @map("week_start_date")
-  weekEndDate         DateTime @map("week_end_date")
-  totalSchedules      Int      @map("total_schedules")
-  completedSchedules  Int      @map("completed_schedules")
-  incompleteSchedules Int      @map("incomplete_schedules")
-  completionRate      Float    @map("completion_rate")
-  efficiencyScore     Int      @map("efficiency_score")
-  categoryBreakdown   String   @map("category_breakdown") // JSON字符串
-  dailyStats          String   @map("daily_stats") // JSON字符串
-  aiCommentary        String   @map("ai_commentary")
-  warnings            String   // JSON字符串
-  recommendations     String   // JSON字符串
-  createdAt           DateTime @default(now()) @map("created_at")
-
-  // 关系
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("weekly_reports")
-}
