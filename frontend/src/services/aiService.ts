@@ -61,11 +61,11 @@ export const aiService = {
 
   // VIP周报分析 - 获取周报历史列表
   async getWeeklyReportHistory(limit: number = 10): Promise<WeeklyReportHistoryItem[]> {
-    const response = await api.get<{ success: boolean; data: WeeklyReportHistoryItem[] }>(
+    const response = await api.get<{ success: boolean; data: { reports: WeeklyReportHistoryItem[] } }>(
       '/ai/weekly-report/history',
       { params: { limit } }
     );
-    return response.data.data;
+    return response.data.data.reports || [];
   },
 
   // VIP周报分析 - 获取周报详情
