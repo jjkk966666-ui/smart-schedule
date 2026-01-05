@@ -174,6 +174,40 @@ export class AIController {
       return next(error);
     }
   }
+
+  // VIP专属：删除周报
+  async deleteWeeklyReport(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { reportId } = req.params;
+      
+      if (!reportId) {
+        return res.status(400).json({
+          success: false,
+          error: { message: '缺少周报ID' },
+        });
+      }
+
+      const result = await aiService.deleteWeeklyReport(req.user!.userId, reportId);
+      
+      if (!result.success) {
+        return res.status(result.error?.includes('VIP') ? 403 : 404).json({
+          success: false,
+          error: { message: result.error },
+        });
+      }
+      
+      return res.json({
+        success: true,
+        data: { message: '周报删除成功' },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+}
+
+export default new AIController();
+
 }
 
 export default new AIController();
