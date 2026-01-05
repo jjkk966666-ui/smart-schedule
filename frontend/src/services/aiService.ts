@@ -75,4 +75,9 @@ export const aiService = {
     );
     return response.data.data;
   },
+
+  // VIP周报分析 - 删除周报
+  async deleteWeeklyReport(reportId: string): Promise<void> {
+    await api.delete(`/ai/weekly-report/${reportId}`);
+  },
 };
