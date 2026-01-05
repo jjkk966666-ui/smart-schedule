@@ -1697,6 +1697,52 @@ ${categoryBreakdown.map(c => `- ${c.category}: ${c.percentage}% (${c.completedCo
       };
     }
   }
+
+  // 删除周报
+  async deleteWeeklyReport(userId: string, reportId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 检查VIP状态
+      const vipStatus = await this.isUserVip(userId);
+      if (!vipStatus.isVip) {
+        return {
+          success: false,
+          error: '删除周报是VIP专属功能',
+        };
+      }
+
+      // 检查周报是否存在且属于该用户
+      const report = await (prisma as any).weeklyReport.findFirst({
+        where: {
+          id: reportId,
+          userId,
+        },
+      });
+
+      if (!report) {
+        return {
+          success: false,
+          error: '周报不存在或无权删除',
+        };
+      }
+
+      // 删除周报
+      await (prisma as any).weeklyReport.delete({
+        where: {
+          id: reportId,
+        },
+      });
+
+      return {
+        success: true,
+      };
+    } catch (error: any) {
+      console.error('删除周报失败:', error);
+      return {
+        success: false,
+        error: error.message || '删除周报失败',
+      };
+    }
+  }
 }
 
 export default new AIService();
