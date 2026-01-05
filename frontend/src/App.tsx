@@ -846,12 +846,24 @@ function App() {
     setShowReportConfirm(true);
   };
 
-  // 切换显示历史列表
-  const toggleReportHistory = () => {
-    if (!showReportHistory) {
-      loadWeeklyReportHistory();
+  // 删除历史周报
+  const handleDeleteWeeklyReport = async (reportId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // 阻止触发查看详情
+    if (!confirm('确定要删除这份周报吗？删除后无法恢复。')) return;
+    
+    try {
+      await aiService.deleteWeeklyReport(reportId);
+      // 刷新历史列表
+      await loadWeeklyReportHistory();
+      // 如果正在查看被删除的周报，返回确认界面
+      if (viewingHistoryReport && weeklyReportData?.id === reportId) {
+        setViewingHistoryReport(false);
+        setShowReportConfirm(true);
+        setWeeklyReportData(null);
+      }
+    } catch (error: any) {
+      alert('删除失败: ' + (error.response?.data?.error?.message || '未知错误'));
     }
-    setShowReportHistory(!showReportHistory);
   };
 
   // 格式化周报日期范围
@@ -1114,15 +1126,6 @@ function App() {
             <div className="modal-header">
               <h2>📊 {viewingHistoryReport ? '历史周报' : '本周AI分析报告'}</h2>
               <div className="modal-header-actions">
-                {user?.isVip && (
-                  <button
-                    className="btn-report-history"
-                    onClick={toggleReportHistory}
-                    title="查看历史周报"
-                  >
-                    📜 历史
-                  </button>
-                )}
                 <button className="modal-close" onClick={closeWeeklyReport}>×</button>
               </div>
             </div>
@@ -1153,8 +1156,17 @@ function App() {
                           className="report-history-item"
                           onClick={() => handleViewHistoryReport(report.id)}
                         >
-                          <div className="history-item-date">
-                            📅 {formatReportDateRange(report.weekStartDate, report.weekEndDate)}
+                          <div className="history-item-header">
+                            <div className="history-item-date">
+                              📅 {formatReportDateRange(report.weekStartDate, report.weekEndDate)}
+                            </div>
+                            <button
+                              className="btn-delete-report"
+                              onClick={(e) => handleDeleteWeeklyReport(report.id, e)}
+                              title="删除此周报"
+                            >
+                              🗑️
+                            </button>
                           </div>
                           <div className="history-item-stats">
                             <span>完成率: {report.completionRate.toFixed(0)}%</span>
