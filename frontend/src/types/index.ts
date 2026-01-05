@@ -313,6 +313,7 @@ export interface DailyStats {
 export interface WeeklyReportData {
   success: boolean;
   error?: string;
+  id?: string;
   totalSchedules: number;
   completedSchedules: number;
   incompleteSchedules: number;
