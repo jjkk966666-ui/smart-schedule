@@ -207,7 +207,3 @@ export class AIController {
 }
 
 export default new AIController();
-
-}
-
-export default new AIController();
