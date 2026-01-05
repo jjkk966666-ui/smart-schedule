@@ -19,5 +19,7 @@ router.post('/weekly-report/save', aiController.saveWeeklyReport);
 router.get('/weekly-report/history', aiController.getWeeklyReportHistory);
 // VIP专属：获取周报详情
 router.get('/weekly-report/:reportId', aiController.getWeeklyReportDetail);
+// VIP专属：删除周报
+router.delete('/weekly-report/:reportId', aiController.deleteWeeklyReport);
 
 export default router;
