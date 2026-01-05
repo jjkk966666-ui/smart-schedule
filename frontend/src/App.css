@@ -3366,3 +3366,35 @@ body[data-theme="dark"] .ai-commentary-section {
     justify-content: center;
   }
 }
+
+/* 删除周报按钮样式 */
+.btn-delete-report {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete-report:hover {
+  background: var(--danger-bg);
+  color: var(--danger-color);
+}
+
+.btn-delete-report:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 周报历史项操作区域 */
+.report-history-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
